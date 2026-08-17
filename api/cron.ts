@@ -6,8 +6,16 @@ import { safeEqual } from "../lib/secure.js";
 import { ensureSubscription } from "../lib/subscription.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+  // Required, not optional: Vercel cron requests carry no built-in
+  // authentication, so a deployment without CRON_SECRET would leave the
+  // endpoint open to anyone who can reach the URL.
   const secret = envOpt("CRON_SECRET");
-  if (secret && !safeEqual(req.headers.authorization ?? "", `Bearer ${secret}`)) {
+  if (!secret) {
+    log.error("cron secret not configured");
+    res.status(500).json({ error: "cron not configured" });
+    return;
+  }
+  if (!safeEqual(req.headers.authorization ?? "", `Bearer ${secret}`)) {
     res.status(401).json({ error: "unauthorized" });
     return;
   }

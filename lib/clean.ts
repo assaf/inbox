@@ -1,7 +1,6 @@
+import { digestSenderExact } from "./config.js";
 import { parseDigest, buildCleanMessage, type Digest } from "./digest.js";
 import { enrichSenders } from "./sender.js";
-
-export const DIGEST_FROM = "USPSInformedDelivery@email.informeddelivery.usps.com";
 
 export interface CleanedDigest {
   digest: Digest;
@@ -13,7 +12,7 @@ export async function rebuildDigest(raw: Buffer, username: string): Promise<Clea
   const digest = await parseDigest(raw);
   await enrichSenders(digest);
   const clean = await buildCleanMessage(digest, {
-    from: digest.from ?? DIGEST_FROM,
+    from: digest.from ?? digestSenderExact(),
     to: username,
   });
   return { digest, clean };

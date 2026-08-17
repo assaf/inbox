@@ -136,6 +136,8 @@ export interface RawEmail {
   raw: Buffer;
   receivedAt: string;
   subject: string;
+  /** Sender address from the From header (first entry, or null). */
+  from: string | null;
 }
 
 /** Fetch the full RFC 5322 source of an email by downloading its blob. */
@@ -147,7 +149,7 @@ export async function rawEmail(id: string): Promise<RawEmail> {
   >("Email/get", {
     accountId: s.accountId,
     ids: [id],
-    properties: ["receivedAt", "subject", "blobId"],
+    properties: ["receivedAt", "subject", "blobId", "from"],
   });
   const email = list[0];
   if (!email) throw new Error(`Email ${id} not found`);
@@ -169,11 +171,13 @@ export async function rawEmail(id: string): Promise<RawEmail> {
     throw new Error(`email download failed: ${res.status} ${await res.text()}`);
   }
   const raw = Buffer.from(await res.arrayBuffer());
+  const fromList = email["from"] as Array<{ email?: string }> | null | undefined;
   return {
     id,
     raw,
     receivedAt: (email["receivedAt"] as string) ?? new Date().toISOString(),
     subject: (email["subject"] as string) ?? "",
+    from: fromList?.[0]?.email ?? null,
   };
 }
 

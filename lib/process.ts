@@ -1,3 +1,4 @@
+import { digestSenderExact } from "./config.js";
 import { session, unprocessedDigestIds, rawEmail, importEmail, markProcessed } from "./jmap.js";
 import { rebuildDigest } from "./clean.js";
 import { log } from "./log.js";
@@ -10,6 +11,16 @@ export interface ProcessResult {
 const BATCH = 10; // matches the Email/query limit in unprocessedDigestIds()
 const MAX_TOTAL = 30; // safety cap on digests per invocation
 const TIME_BUDGET_MS = 40_000; // headroom inside Vercel's 60s maxDuration
+
+/**
+ * The JMAP query filter is a loose substring match, and SMTP From headers are
+ * trivially spoofable — an attacker who can email the account could otherwise
+ * get a crafted "digest" processed and imported. Require the exact sender
+ * address (case-insensitive) before spending a blob download, OCR, or import.
+ */
+function matchesDigestSender(from: string | null | undefined): boolean {
+  return !!from && from.toLowerCase() === digestSenderExact().toLowerCase();
+}
 
 /**
  * Rebuild + import unprocessed digests. Each digest is marked processed
@@ -36,6 +47,10 @@ export async function processNewDigests(limit?: number): Promise<ProcessResult> 
       try {
         const s = await session();
         const email = await rawEmail(id);
+        if (!matchesDigestSender(email.from)) {
+          log.warn("skipping digest from unexpected sender", { id, from: email.from });
+          continue;
+        }
         const { digest, clean } = await rebuildDigest(email.raw, s.username);
         await importEmail(clean, email.receivedAt);
         processed++;

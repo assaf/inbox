@@ -33,6 +33,13 @@ export function envDefault(name: string, fallback: string): string {
   return process.env[name] || fallback;
 }
 
+/** Exact sender address of Informed Delivery digests, verified after fetch.
+ * Distinct from DIGEST_FROM (the loose JMAP query filter) — this is the
+ * exact address a digest must come from to be processed. */
+export function digestSenderExact(): string {
+  return envDefault("DIGEST_SENDER", "USPSInformedDelivery@email.informeddelivery.usps.com");
+}
+
 /** Stable id for this device's push subscription. */
 export function deviceClientId(): string {
   return envDefault("DEVICE_CLIENT_ID", "usps-digest-cleaner");
