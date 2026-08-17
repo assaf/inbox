@@ -31,21 +31,15 @@ export async function ensureSubscription(): Promise<string> {
   for (const s of ours) {
     const expiring =
       !s.expires || new Date(s.expires).getTime() < Date.now() + ms(RENEW_WITHIN_DAYS);
-    const unverified = !s.verificationCode;
-    if (expiring || unverified) {
-      console.warn(
-        `[subscription] destroying ${s.id} (expiring=${expiring}, unverified=${unverified})`,
-      );
+    if (expiring) {
+      console.warn(`[subscription] destroying ${s.id} (expiring)`);
       await destroySubscription(s.id);
     }
   }
 
   const remaining = (await listSubscriptions()).filter((s) => s.deviceClientId === deviceId);
   const live = remaining.find(
-    (s) =>
-      s.verificationCode &&
-      s.expires &&
-      new Date(s.expires).getTime() >= Date.now() + ms(RENEW_WITHIN_DAYS),
+    (s) => s.expires && new Date(s.expires).getTime() >= Date.now() + ms(RENEW_WITHIN_DAYS),
   );
   if (live) return live.id;
 

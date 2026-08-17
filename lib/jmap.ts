@@ -93,11 +93,15 @@ export async function listMailboxes(): Promise<Mailbox[]> {
   return (args as { list: Mailbox[] }).list;
 }
 
-export async function inboxId(): Promise<string> {
+async function mailboxIdByRole(role: string): Promise<string> {
   const boxes = await listMailboxes();
-  const inbox = boxes.find((b) => b.role === "inbox");
-  if (!inbox) throw new Error("No inbox mailbox found");
-  return inbox.id;
+  const box = boxes.find((b) => b.role === role);
+  if (!box) throw new Error(`No ${role} mailbox found`);
+  return box.id;
+}
+
+export async function inboxId(): Promise<string> {
+  return mailboxIdByRole("inbox");
 }
 
 export interface RawEmail {
@@ -205,7 +209,9 @@ export async function importEmail(raw: Buffer, receivedAt: string): Promise<stri
             e1: {
               blobId: upj.blobId,
               mailboxIds: { [inbox]: true },
-              keywords: {},
+              // Mark the clean copy processed so it can never match the digest
+              // query and trigger a re-import loop.
+              keywords: { [env("PROCESSED_KEYWORD")]: true },
               receivedAt,
             },
           },
@@ -220,7 +226,7 @@ export async function importEmail(raw: Buffer, receivedAt: string): Promise<stri
   return createdEmail.id;
 }
 
-/** Mark the original digest read + archived + processed (all in one set). */
+/** Mark the original digest read + processed (both keyword flags). */
 export async function markProcessed(id: string): Promise<void> {
   const s = await session();
   await api([
@@ -231,8 +237,8 @@ export async function markProcessed(id: string): Promise<void> {
         update: {
           [id]: {
             [`keywords/${env("PROCESSED_KEYWORD")}`]: true,
-            "keywords/\\seen": true,
-            "keywords/\\archive": true,
+            // Fastmail rejects RFC-style `\seen`; its seen keyword is `$seen`.
+            "keywords/$seen": true,
           },
         },
       },

@@ -83,16 +83,14 @@ describe("ensureSubscription", () => {
     expect(createSubscriptionMock).toHaveBeenCalledTimes(1);
   });
 
-  it("destroys and recreates an unverified subscription (self-healing)", async () => {
-    const unverified = makeSub({ id: "sub1", verificationCode: null });
-    listSubscriptionsMock.mockResolvedValueOnce([unverified]).mockResolvedValueOnce([]);
-    destroySubscriptionMock.mockResolvedValue(undefined);
-    createSubscriptionMock.mockResolvedValue("sub-new");
+  it("keeps a verified subscription whose verificationCode is null (Fastmail nulls it after verify)", async () => {
+    const verified = makeSub({ id: "sub1", verificationCode: null });
+    listSubscriptionsMock.mockResolvedValueOnce([verified]).mockResolvedValueOnce([verified]);
 
-    await expect(ensureSubscription()).resolves.toBe("sub-new");
+    await expect(ensureSubscription()).resolves.toBe("sub1");
 
-    expect(destroySubscriptionMock).toHaveBeenCalledWith("sub1");
-    expect(createSubscriptionMock).toHaveBeenCalledTimes(1);
+    expect(destroySubscriptionMock).not.toHaveBeenCalled();
+    expect(createSubscriptionMock).not.toHaveBeenCalled();
   });
 
   it("ignores subscriptions for other deviceClientIds", async () => {
