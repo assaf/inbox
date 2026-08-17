@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { envDefault, envOpt } from "../lib/config.js";
 import { listMailboxes, listSubscriptions } from "../lib/jmap.js";
+import { safeEqual } from "../lib/secure.js";
 
 interface SmokeStatus {
   ok: boolean;
@@ -20,7 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     res.status(404).json({ error: "not found" });
     return;
   }
-  if (req.headers["x-smoke-secret"] !== secret) {
+  if (!safeEqual(String(req.headers["x-smoke-secret"] ?? ""), secret)) {
     res.status(401).json({ error: "unauthorized" });
     return;
   }

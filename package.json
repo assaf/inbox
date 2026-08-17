@@ -18,7 +18,7 @@
   "dependencies": {
     "http_ece": "^1.2.1",
     "linkedom": "^0.18.13",
-    "nodemailer": "^6.10.1",
+    "nodemailer": "^9.0.5",
     "postal-mime": "^3.0.0"
   },
   "devDependencies": {

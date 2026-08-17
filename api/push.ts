@@ -4,14 +4,29 @@ import { decryptPushBody } from "../lib/decrypt.js";
 import { setVerificationCode } from "../lib/jmap.js";
 import { processNewDigests } from "../lib/process.js";
 
+const MAX_BODY_BYTES = 1024 * 1024; // 1 MiB — a push payload is a few KB
+
 function readBody(req: VercelRequest): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     if (Buffer.isBuffer(req.body)) {
+      if (req.body.length > MAX_BODY_BYTES) {
+        reject(new Error("body too large"));
+        return;
+      }
       resolve(req.body);
       return;
     }
     const chunks: Buffer[] = [];
-    req.on("data", (c) => chunks.push(Buffer.from(c)));
+    let size = 0;
+    req.on("data", (c) => {
+      size += c.length;
+      if (size > MAX_BODY_BYTES) {
+        reject(new Error("body too large"));
+        req.destroy();
+        return;
+      }
+      chunks.push(Buffer.from(c));
+    });
     req.on("end", () => resolve(Buffer.concat(chunks)));
     req.on("error", reject);
   });
