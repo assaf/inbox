@@ -1,0 +1,18 @@
+# Local-only files — never uploaded or served.
+# `lib/` is deliberately NOT here: the api/*.ts functions import it at build
+# time, so it must be uploaded (Vercel serves it as static, which is harmless —
+# secrets live in env vars, not source).
+test/
+scripts/
+.pi/
+
+# Docs
+README.md
+
+# Redundant with .gitignore, kept here for safety.
+node_modules/
+.vercel/
+.env
+.env.*
+out/
+*.tsbuildinfo
