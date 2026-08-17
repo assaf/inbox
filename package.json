@@ -33,7 +33,7 @@
     "portless": "^0.15.5",
     "secretlint": "^13.0.4",
     "tsx": "^4.23.12",
-    "typescript": "^5.8.3",
+    "typescript": "^7.0.2",
     "vite-plus": "^0.2.9",
     "vitest": "^4.1.10"
   },
