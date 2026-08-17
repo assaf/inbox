@@ -15,33 +15,39 @@ Runs on Vercel. All TypeScript. No mailbox polling latency — push means second
 USPS digest arrives in Fastmail
         │  JMAP StateChange push (RFC 8291 aes128gcm)
         ▼
-Vercel /api/push ──decrypt──► /api/cron (renewal + catch-up)
+Vercel /api/push ──decrypt──► process digests
         │
         ▼
 Email/query (unprocessed digests) → download raw MIME
         │
         ▼
-parse + strip ads + rebuild (lib/digest.ts)
+parse + strip ads + rebuild (lib/digest.ts) + OCR senders (lib/sender.ts)
         │
         ▼
 Email/import into Inbox → mark original read + archived + $usps-processed
 ```
 
 - **Push**: Fastmail POSTs an encrypted `StateChange` to `/api/push`. The
-  subscription is created/renewed by `ensureSubscription()` (run by cron and by
-  `pnpm setup`). The webhook also completes the `PushVerification` handshake.
-- **Cron** (`*/15 * * * *`): renews the subscription if expiring/unverified, and
-  re-processes anything the push missed (self-healing).
+  subscription is created/renewed by `ensureSubscription()` (run by the daily
+  cron and by `pnpm setup`). The webhook also completes the `PushVerification`
+  handshake.
+- **Cron** (`0 12 * * *`, daily): renews the subscription if it is expiring or
+  unverified. Processing is push-driven only — the cron does not re-process.
 - **Idempotency**: processed originals get a `$usps-processed` keyword; the query
-  filters on it. A failed import leaves the original untouched for the next pass.
+  filters on it. A failed import leaves the original untouched for the next push.
 
 ## How parsing works (why it doesn't hallucinate)
 
 - **Ad-stripping is a filename deny-list**, not an LLM call: campaign creative is
   always `mailer-*.jpg` / `content-*.jpg`; every other image is a real scan.
-- **Senders come from the markup**, not vision: USPS renders each scan beneath a
-  `FROM:` heading. `mapCidSenders` walks document order and attaches the nearest
-  preceding `FROM:` to each `cid:` image. Deterministic, free, stable.
+- **Senders come from the `FROM:` labels first**, then vision. USPS renders many
+  scans beneath a `FROM:` heading; `mapCidSenders` walks document order and
+  attaches the nearest preceding `FROM:` to each `cid:` image. Scans without a
+  label are OCR'd with Cloudflare Workers AI
+  (`@cf/meta/llama-3.2-11b-vision-instruct`) — reading the sender's return
+  address off the envelope. Deterministic (`temperature: 0`), and skipped
+  entirely when the Cloudflare env vars are unset (those scans render "Unknown
+  sender").
 - The digest is parsed from the **text rendering** of the HTML (the visible
   labels "Expected Today", "FROM:", "N item(s)") — the structure is table soup
   that USPS rewrites freely, but the labels have been stable for years.
@@ -54,32 +60,35 @@ Ported from [ventz/usps-informed-delivery-no-ads](https://github.com/ventz/usps-
 1. **Create a Fastmail API token** — Settings → Privacy & Security → Integrations
    → API tokens. Scope: email read + write (the JMAP Mail capability).
 
-2. **Deploy the project** to Vercel and set env vars:
+2. **Create a Cloudflare Workers AI token** (optional, for envelope OCR) —
+   dash.cloudflare.com → API tokens → Workers AI. Note the account id too.
+
+3. **Copy `.env.example` to `.env`** and fill in `FASTMAIL_TOKEN`, `PUBLIC_URL`,
+   and `DEVICE_CLIENT_ID` (any stable string). Add `CLOUDFLARE_ACCOUNT_ID` /
+   `CLOUDFLARE_API_TOKEN` if you want OCR. Then `pnpm install`.
+
+4. **Deploy to Vercel** and add the env vars to the project (production):
 
    ```
-   vercel env add FASTMAIL_TOKEN <token>
-   vercel env add PUBLIC_URL https://<your-deployment>.vercel.app
-   vercel env add CRON_SECRET <random-string>
+   vercel env add FASTMAIL_TOKEN <token> production
+   vercel env add PUBLIC_URL https://<your-deployment>.vercel.app production
+   vercel env add DEVICE_CLIENT_ID <stable-id> production
+   vercel env add CRON_SECRET <random-string> production
+   vercel env add CLOUDFLARE_ACCOUNT_ID <id> production
+   vercel env add CLOUDFLARE_API_TOKEN <token> production
+   vercel deploy --prod
    ```
 
-   (Defaults are fine for `DEVICE_CLIENT_ID`, `DIGEST_FROM`, `DIGEST_SUBJECT`,
-   `PROCESSED_KEYWORD`.)
+5. **Generate push keys + create the subscription** — `pnpm setup` writes
+   `PUSH_PRIVATE_KEY` / `PUSH_AUTH` to `.env`, prints two `vercel env add`
+   commands, and creates the subscription. Run the two printed commands, redeploy
+   (`vercel deploy --prod`), then run `pnpm setup` again — the verification
+   webhook can now decrypt, so the subscription is recreated as verified.
 
-3. **Generate push keys + create the subscription** (run after deploy, so the
-   verification webhook is live):
-
-   ```
-   cp .env.example .env        # fill FASTMAIL_TOKEN + PUBLIC_URL
-   pnpm install
-   pnpm setup
-   ```
-
-   `pnpm setup` writes `PUSH_PRIVATE_KEY` / `PUSH_AUTH` to `.env` and prints the
-   two `vercel env add` commands for them. Add those, then re-run `pnpm setup`.
-
-4. **Verify** the handshake: the Vercel function log shows
+6. **Verify** the handshake: the Vercel function log shows
    `[push] verified subscription <id>`. Send yourself a test digest (or wait for
    tomorrow's) — the clean copy appears in Inbox, the original moves to Archive.
+   To process an existing backlog once, run `pnpm process`.
 
 ## Env vars
 
@@ -88,20 +97,26 @@ Ported from [ventz/usps-informed-delivery-no-ads](https://github.com/ventz/usps-
 | `FASTMAIL_TOKEN`                 | yes         | JMAP API token (Bearer auth)                         |
 | `PUBLIC_URL`                     | yes         | base URL; push endpoint is `<PUBLIC_URL>/api/push`   |
 | `PUSH_PRIVATE_KEY` / `PUSH_AUTH` | yes         | generated by `pnpm setup`; never commit              |
+| `DEVICE_CLIENT_ID`               | yes         | stable id for this device's subscription             |
 | `CRON_SECRET`                    | recommended | Vercel sends it as `Authorization: Bearer …` on cron |
-| `DEVICE_CLIENT_ID`               | no          | defaults `usps-digest-cleaner`                       |
-| `DIGEST_FROM`                    | no          | defaults `informeddelivery` (substring match)        |
-| `DIGEST_SUBJECT`                 | no          | defaults `Daily Digest`                              |
-| `PROCESSED_KEYWORD`              | no          | defaults `$usps-processed`                           |
+| `CLOUDFLARE_ACCOUNT_ID`          | for OCR     | Cloudflare account id                                |
+| `CLOUDFLARE_API_TOKEN`           | for OCR     | Workers AI token                                     |
+| `CLOUDFLARE_OCR_MODEL`           | no          | defaults `@cf/meta/llama-3.2-11b-vision-instruct`    |
+| `DIGEST_FROM`                    | no          | `.env.example` sets `informeddelivery` (substring)   |
+| `DIGEST_SUBJECT`                 | no          | `.env.example` sets `Daily Digest`                   |
+| `PROCESSED_KEYWORD`              | no          | `.env.example` sets `$usps-processed`                |
 
 ## Development
 
 ```
 pnpm install
-pnpm typecheck
+pnpm check        # format + lint + typecheck
+pnpm test         # test suite
+pnpm dry-run      # read-only: parse real digests, write clean .eml to out/
+pnpm process [n]  # live: import clean copy + archive original (n = limit)
 pnpm dev          # vercel dev — local function runtime
 ```
 
-Note: the push flow needs a public URL, so test the parse/render pipeline locally
-with a saved `.eml` (see `lib/digest.ts`), and test the full push path against a
-deployed preview.
+The push flow needs a public URL, so test the parse/render pipeline locally with
+`pnpm dry-run` (writes `out/*.eml`, no inbox changes), and test the full push
+path against a deployed preview.
