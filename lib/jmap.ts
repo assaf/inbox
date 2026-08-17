@@ -208,7 +208,7 @@ export async function importEmail(raw: Buffer, receivedAt: string): Promise<stri
       ...bearer(token),
       "Content-Type": "message/rfc822",
     },
-    body: raw,
+    body: new Uint8Array(raw),
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
   if (!up.ok) throw new Error(`upload failed: ${up.status} ${await up.text()}`);

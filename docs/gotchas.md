@@ -9,7 +9,7 @@ architecture. Read before touching the pipeline.
   `\seen` and `\archive` (Email/set returns `notUpdated` with
   `invalidProperties`); its read flag is `$seen`. There is no archive keyword —
   archiving is a mailbox move to the `role: "archive"` mailbox.
-- **`$usps-processed` is one-way.** It can be set but *not* removed (both the
+- **`$usps-processed` is one-way.** It can be set but _not_ removed (both the
   flattened `keywords/$name: false` and map forms are rejected). Consequence:
   `processNewDigests` marks **before** import and has no rollback — a failed
   import leaves the original marked (still visible in Inbox, just skipped).
@@ -19,7 +19,7 @@ architecture. Read before touching the pipeline.
   re-import loop (invalid `\seen` keyword silently failed the whole set).
 - **`PushSubscription.verificationCode` is always `null` on GET.** Fastmail
   clears it after verification, so you cannot detect verified-vs-unverified via
-  the API. `ensureSubscription` therefore renews on *expiry only*.
+  the API. `ensureSubscription` therefore renews on _expiry only_.
 - Push subscriptions require encrypted `keys` (Web Push) — Fastmail rejects
   plaintext push URLs.
 - Raw email download: use `downloadUrl` (NOT `uploadUrl`) with
