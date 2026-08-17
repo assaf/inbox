@@ -83,7 +83,6 @@ function firstArgs(responses: [string, unknown, string][]): unknown {
 
 export interface Mailbox {
   id: string;
-  name: string;
   role?: string | null;
 }
 
@@ -252,7 +251,6 @@ export interface PushSubscription {
   deviceClientId: string;
   expires: string | null;
   url: string;
-  verificationCode: string | null;
 }
 
 export async function listSubscriptions(): Promise<PushSubscription[]> {

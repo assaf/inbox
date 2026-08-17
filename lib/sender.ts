@@ -24,6 +24,17 @@ function configured(): boolean {
   return Boolean(envOpt("CLOUDFLARE_ACCOUNT_ID") && envOpt("CLOUDFLARE_API_TOKEN"));
 }
 
+async function cfRun(model: string, body: unknown): Promise<Response | null> {
+  const accountId = envOpt("CLOUDFLARE_ACCOUNT_ID");
+  const token = envOpt("CLOUDFLARE_API_TOKEN");
+  if (!accountId || !token) return null;
+  return fetch(`${CF_API}/${accountId}/ai/run/${model}`, {
+    method: "POST",
+    headers: { ...bearer(token), "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
 let licenseAgreed = false;
 
 /**
@@ -34,36 +45,23 @@ let licenseAgreed = false;
 async function ensureLicense(): Promise<void> {
   if (licenseAgreed) return;
   licenseAgreed = true;
-  const accountId = envOpt("CLOUDFLARE_ACCOUNT_ID");
-  const token = envOpt("CLOUDFLARE_API_TOKEN");
-  if (!accountId || !token) return;
   try {
-    await fetch(`${CF_API}/${accountId}/ai/run/${VISION_MODEL}`, {
-      method: "POST",
-      headers: { ...bearer(token), "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: "agree", stream: false }),
-    });
+    await cfRun(VISION_MODEL, { prompt: "agree", stream: false });
   } catch {
     // ignore — license either accepted or already accepted
   }
 }
 
 async function runVision(prompt: string, image: Buffer): Promise<string | null> {
-  const accountId = envOpt("CLOUDFLARE_ACCOUNT_ID");
-  const token = envOpt("CLOUDFLARE_API_TOKEN");
-  if (!accountId || !token) return null;
   const model = envOpt("CLOUDFLARE_OCR_MODEL") ?? VISION_MODEL;
-  const res = await fetch(`${CF_API}/${accountId}/ai/run/${model}`, {
-    method: "POST",
-    headers: { ...bearer(token), "Content-Type": "application/json" },
-    body: JSON.stringify({
-      prompt,
-      image: Array.from(image),
-      stream: false,
-      max_tokens: 48,
-      temperature: 0,
-    }),
+  const res = await cfRun(model, {
+    prompt,
+    image: Array.from(image),
+    stream: false,
+    max_tokens: 48,
+    temperature: 0,
   });
+  if (!res) return null;
   const text = await res.text();
   if (!res.ok) {
     console.warn(`[sender] Cloudflare vision failed: ${res.status} ${text.slice(0, 300)}`);
@@ -85,7 +83,7 @@ export async function ocrSender(image: Buffer): Promise<string | null> {
   return raw ? cleanSender(raw) : null;
 }
 
-export function cleanSender(raw: string): string | null {
+function cleanSender(raw: string): string | null {
   const line = raw
     .replace(/\*\*/g, "")
     .split("\n")

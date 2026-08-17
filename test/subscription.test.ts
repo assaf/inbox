@@ -26,7 +26,6 @@ function makeSub(overrides: Partial<PushSubscription> & { id: string }): PushSub
     deviceClientId: "test-device",
     expires: new Date(Date.now() + 20 * DAY).toISOString(),
     url: "https://inbox.labnotes.org/api/push",
-    verificationCode: "abc123",
     ...overrides,
   };
 }
@@ -81,16 +80,6 @@ describe("ensureSubscription", () => {
 
     expect(destroySubscriptionMock).toHaveBeenCalledWith("sub1");
     expect(createSubscriptionMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("keeps a verified subscription whose verificationCode is null (Fastmail nulls it after verify)", async () => {
-    const verified = makeSub({ id: "sub1", verificationCode: null });
-    listSubscriptionsMock.mockResolvedValueOnce([verified]).mockResolvedValueOnce([verified]);
-
-    await expect(ensureSubscription()).resolves.toBe("sub1");
-
-    expect(destroySubscriptionMock).not.toHaveBeenCalled();
-    expect(createSubscriptionMock).not.toHaveBeenCalled();
   });
 
   it("ignores subscriptions for other deviceClientIds", async () => {
