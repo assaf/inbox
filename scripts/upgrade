@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Upgrade dependencies to latest, holding TypeScript on the stable 5.x line
 # (7.x is the native preview and breaks the Vercel build with a readFile error).
+# Any failing check aborts the script before the commit.
 set -eo pipefail
 
 echo -e "\033[32m  Upgrading pnpm …\033[0m"
@@ -21,6 +22,9 @@ pnpm check
 pnpm test
 pnpm secretlint
 pnpm knip
+
+echo -e "\033[32m  Build check (Vercel-equivalent) …\033[0m"
+vercel build --yes
 
 echo -e "\033[32m  Auditing dependencies …\033[0m"
 pnpm audit --prod || echo "Security audit failed"
