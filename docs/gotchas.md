@@ -61,10 +61,39 @@ Fixes, in order of importance:
   domain inbox.labnotes.org). `inbox-3psp` is a stray duplicate with a
   "React Router" preset — delete it.
 - **Hobby plan:** cron jobs max once per day. A daily cron (`0 12 * * *`)
-  calls `/api/cron` to renew the push subscription; processing is push-driven
-  (the cron does not re-process digests).
+  calls `/api/cron` to renew the push subscription and drain any backlog the
+  push missed (the catch-up net); processing is otherwise push-driven.
 - `vercel deploy --prod` has intermittently hung locally; the dashboard or
   `git push` (GitHub auto-deploy) are reliable alternatives.
 - Fastmail OAuth 2.0 exists (auth code + PKCE) but requires manual client
   registration with Fastmail — not self-serve. API token is correct for
   self-use.
+
+## Security
+
+- **Push auth = ECE decryption.** Decrypting an RFC 8291 `aes128gcm` payload
+  is the only authentication on `/api/push`; anyone holding the `p256dh`
+  public key can forge payloads. The public key is derivable from
+  `PUSH_PRIVATE_KEY` and is stored in the Fastmail subscription — keep both
+  env vars private. Forged payloads are low-impact anyway: StateChange just
+  re-triggers idempotent processing, and PushVerification codes are validated
+  by Fastmail.
+- **Digest sender verification.** The JMAP query filter (`DIGEST_FROM`) is a
+  loose substring match and SMTP `From:` is spoofable, so every candidate is
+  checked against the exact `DIGEST_SENDER` address (case-insensitive) before
+  download/OCR/import, and skipped otherwise (log: `skipping digest from
+  unexpected sender`). Partial defense: a spoof using the exact address in
+  the From header still passes; real defense would be DKIM verification
+  (overkill here).
+- **Secret-gated endpoints.** `/api/cron` requires `CRON_SECRET` (Vercel cron
+  requests carry no built-in auth) and `/api/smoke` requires
+  `SMOKE_TEST_SECRET`; both compare via `safeEqual` (timing-safe).
+- **Accepted residual risk.** The root status page (`/api/index`) is
+  unauthenticated and reveals mail volume, subscription id/expiry, and recent
+  activity, and each load fires JMAP calls; no rate limiting on `/api/push`
+  (1 MiB body cap, cheap ECDH — fine on Hobby); `http_ece` is unmaintained
+  (no known CVEs; pin it); digest attachments are embedded uncapped (a
+  spoofed digest could produce an oversized rebuilt email).
+- **Secrets hygiene.** secretlint skips gitignored files, so it will NOT catch
+  a committed `.env*`. Delete `.env.prod.pull` / `VERCEL_OIDC_TOKEN` dumps
+  after pulling, and check `git status` for stray `.env*` before committing.
