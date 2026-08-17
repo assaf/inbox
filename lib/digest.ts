@@ -492,6 +492,21 @@ function sectionTitle(text: string): string {
   );
 }
 
+interface CardOpts {
+  table?: string;
+  outer?: string;
+}
+
+function card(inner: string, opts: CardOpts = {}): string {
+  const table = opts.table ? ` style="${opts.table}"` : "";
+  return (
+    `<tr><td style="padding:${opts.outer ?? "10px 24px"};">` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"${table}>` +
+    inner +
+    `</table></td></tr>`
+  );
+}
+
 function packageRow(pkg: PackageInfo): string {
   const sender = esc(pkg.sender || "Unknown sender");
   const lines = [`<div style="font:600 15px ${FONT};color:${INK};">${sender}</div>`];
@@ -510,28 +525,23 @@ function packageRow(pkg: PackageInfo): string {
         `text-decoration:none;border-bottom:1px dotted ${BORDER};">${esc(pkg.tracking)}</a></div>`,
     );
   }
-  return (
-    `<tr><td style="padding:10px 24px;">` +
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">` +
+  return card(
     `<tr><td style="padding:12px 14px;background:${CARD};border:1px solid ${BORDER};` +
-    `border-radius:8px;">${lines.join("")}</td></tr></table></td></tr>`
+      `border-radius:8px;">${lines.join("")}</td></tr>`,
   );
 }
 
 function scanBlock(scan: Scan): string {
   const sender = esc(scan.listedSender || "Unknown sender");
-  return (
-    `<tr><td style="padding:10px 24px;">` +
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" ` +
-    `style="background:${CARD};border:1px solid ${BORDER};border-radius:8px;">` +
+  return card(
     `<tr><td style="padding:14px 14px 10px 14px;">` +
-    `<div style="font:700 19px ${FONT};color:${INK};line-height:1.25;">${sender}</div>` +
-    `</td></tr>` +
-    `<tr><td style="padding:0 14px 14px 14px;">` +
-    `<img src="cid:${scan.cid}" alt="Scan of mail from ${sender}" width="100%" ` +
-    `style="display:block;width:100%;max-width:100%;height:auto;border:1px solid ${BORDER};` +
-    `border-radius:6px;"></td></tr>` +
-    `</table></td></tr>`
+      `<div style="font:700 19px ${FONT};color:${INK};line-height:1.25;">${sender}</div>` +
+      `</td></tr>` +
+      `<tr><td style="padding:0 14px 14px 14px;">` +
+      `<img src="cid:${scan.cid}" alt="Scan of mail from ${sender}" width="100%" ` +
+      `style="display:block;width:100%;max-width:100%;height:auto;border:1px solid ${BORDER};` +
+      `border-radius:6px;"></td></tr>`,
+    { table: `background:${CARD};border:1px solid ${BORDER};border-radius:8px;` },
   );
 }
 
@@ -543,13 +553,12 @@ function hiddenNotice(d: Digest): string {
     who = ` Replaced by advertising from: <strong>${esc(d.sendersWithoutScans.join(", "))}</strong>.`;
   }
   const piece = n === 1 ? "mailpiece" : "mailpieces";
-  return (
-    `<tr><td style="padding:10px 24px 4px 24px;">` +
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">` +
+  return card(
     `<tr><td style="padding:12px 14px;background:${WARN_BG};border:1px solid ${WARN_BORDER};` +
-    `border-radius:8px;font:400 13px ${FONT};color:${WARN_INK};">` +
-    `USPS did not provide a scan for <strong>${n} ${piece}</strong>.${who}` +
-    `</td></tr></table></td></tr>`
+      `border-radius:8px;font:400 13px ${FONT};color:${WARN_INK};">` +
+      `USPS did not provide a scan for <strong>${n} ${piece}</strong>.${who}` +
+      `</td></tr>`,
+    { outer: "10px 24px 4px 24px" },
   );
 }
 

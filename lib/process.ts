@@ -1,6 +1,5 @@
 import { session, unprocessedDigestIds, rawEmail, importEmail, markProcessed } from "./jmap.js";
-import { parseDigest, buildCleanMessage } from "./digest.js";
-import { enrichSenders } from "./sender.js";
+import { rebuildDigest } from "./clean.js";
 
 export interface ProcessResult {
   processed: number;
@@ -23,12 +22,7 @@ export async function processNewDigests(limit?: number): Promise<ProcessResult> 
   for (const id of ids) {
     try {
       const email = await rawEmail(id);
-      const digest = await parseDigest(email.raw);
-      await enrichSenders(digest);
-      const clean = await buildCleanMessage(digest, {
-        from: digest.from ?? "USPSInformedDelivery@email.informeddelivery.usps.com",
-        to: s.username,
-      });
+      const { digest, clean } = await rebuildDigest(email.raw, s.username);
       await importEmail(clean, email.receivedAt);
       await markProcessed(id);
       processed++;

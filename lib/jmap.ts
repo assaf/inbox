@@ -1,4 +1,5 @@
 import { env } from "./config.js";
+import { bearer } from "./http.js";
 
 const SESSION_URL = "https://api.fastmail.com/jmap/session";
 
@@ -25,7 +26,7 @@ export async function session(): Promise<Session> {
   if (sessionCache) return sessionCache;
   sessionPromise ??= (async () => {
     const res = await fetch(SESSION_URL, {
-      headers: { Authorization: `Bearer ${env("FASTMAIL_TOKEN")}` },
+      headers: bearer(env("FASTMAIL_TOKEN")),
     });
     if (!res.ok) {
       throw new Error(`JMAP session failed: ${res.status} ${await res.text()}`);
@@ -55,7 +56,7 @@ export async function api(methodCalls: unknown[][]): Promise<[string, unknown, s
   const res = await fetch(s.apiUrl, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${env("FASTMAIL_TOKEN")}`,
+      ...bearer(env("FASTMAIL_TOKEN")),
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -136,7 +137,7 @@ export async function rawEmail(id: string): Promise<RawEmail> {
     .replace("{type}", "message/rfc822");
 
   const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${env("FASTMAIL_TOKEN")}` },
+    headers: bearer(env("FASTMAIL_TOKEN")),
   });
   if (!res.ok) {
     throw new Error(`email download failed: ${res.status} ${await res.text()}`);
@@ -184,7 +185,7 @@ export async function importEmail(raw: Buffer, receivedAt: string): Promise<stri
   const up = await fetch(uploadUrl, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${token}`,
+      ...bearer(token),
       "Content-Type": "message/rfc822",
     },
     body: raw,

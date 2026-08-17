@@ -1,8 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { rawEmail, session, unprocessedDigestIds } from "../lib/jmap.js";
-import { buildCleanMessage, parseDigest } from "../lib/digest.js";
-import { enrichSenders } from "../lib/sender.js";
+import { rebuildDigest } from "../lib/clean.js";
 
 const outDir = resolve(process.cwd(), "out");
 
@@ -29,12 +28,7 @@ async function main(): Promise<void> {
   for (const id of ids) {
     try {
       const email = await rawEmail(id);
-      const digest = await parseDigest(email.raw);
-      await enrichSenders(digest);
-      const clean = await buildCleanMessage(digest, {
-        from: digest.from ?? "USPSInformedDelivery@email.informeddelivery.usps.com",
-        to: s.username,
-      });
+      const { digest, clean } = await rebuildDigest(email.raw, s.username);
       const stamp = safeName(email.receivedAt.replace(/[:.]/g, "-"));
       const file = `${stamp} ${safeName(email.subject)}.eml`;
       writeFileSync(resolve(outDir, file), clean);

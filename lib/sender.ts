@@ -1,4 +1,5 @@
 import { envOpt } from "./config.js";
+import { bearer } from "./http.js";
 import type { Digest } from "./digest.js";
 
 const CF_API = "https://api.cloudflare.com/client/v4/accounts";
@@ -39,7 +40,7 @@ async function ensureLicense(): Promise<void> {
   try {
     await fetch(`${CF_API}/${accountId}/ai/run/${VISION_MODEL}`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      headers: { ...bearer(token), "Content-Type": "application/json" },
       body: JSON.stringify({ prompt: "agree", stream: false }),
     });
   } catch {
@@ -54,7 +55,7 @@ async function runVision(prompt: string, image: Buffer): Promise<string | null> 
   const model = envOpt("CLOUDFLARE_OCR_MODEL") ?? VISION_MODEL;
   const res = await fetch(`${CF_API}/${accountId}/ai/run/${model}`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: { ...bearer(token), "Content-Type": "application/json" },
     body: JSON.stringify({
       prompt,
       image: Array.from(image),
