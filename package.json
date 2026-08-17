@@ -9,6 +9,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "vp lint",
     "check": "vp check --fix",
+    "dry-run": "tsx scripts/dry-run.ts",
+    "process": "tsx scripts/process.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "dev": "vercel dev"

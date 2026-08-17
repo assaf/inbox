@@ -1,5 +1,6 @@
 import { session, unprocessedDigestIds, rawEmail, importEmail, markProcessed } from "./jmap.js";
 import { parseDigest, buildCleanMessage } from "./digest.js";
+import { enrichSenders } from "./sender.js";
 
 export interface ProcessResult {
   processed: number;
@@ -11,8 +12,9 @@ export interface ProcessResult {
  * clean copy into the Inbox, then mark + archive the original. One digest's
  * failure never blocks the rest; the cron pass retries on the next cycle.
  */
-export async function processNewDigests(): Promise<ProcessResult> {
-  const ids = await unprocessedDigestIds();
+export async function processNewDigests(limit?: number): Promise<ProcessResult> {
+  let ids = await unprocessedDigestIds();
+  if (limit !== undefined) ids = ids.slice(0, limit);
   const s = await session();
 
   let processed = 0;
@@ -22,8 +24,9 @@ export async function processNewDigests(): Promise<ProcessResult> {
     try {
       const email = await rawEmail(id);
       const digest = await parseDigest(email.raw);
+      await enrichSenders(digest);
       const clean = await buildCleanMessage(digest, {
-        from: digest.from ?? "USPSInformedDelivery@usps.gov",
+        from: digest.from ?? "USPSInformedDelivery@email.informeddelivery.usps.com",
         to: s.username,
       });
       await importEmail(clean, email.receivedAt);
