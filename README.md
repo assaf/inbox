@@ -38,8 +38,9 @@ Email/import into Inbox → mark original read + $usps-processed
 ```
 
 - **Push**: Fastmail POSTs an encrypted `StateChange` to `/api/push`. The
-  subscription is created/renewed by `ensureSubscription()` (via `pnpm setup`).
-  The webhook also completes the `PushVerification` handshake.
+  subscription is created/renewed by `ensureSubscription()` (via `pnpm setup`
+  and the daily cron). The webhook also completes the `PushVerification`
+  handshake.
 - **Idempotency**: processed originals get a `$usps-processed` keyword; the
   query filters on it. A failed import leaves the original untouched for the
   next push. Each digest is marked before it is imported, so a re-fired push
@@ -136,9 +137,8 @@ reachability, push-subscription health, OCR configuration, and recent digests.
 - **Upgrade dependencies**: `./scripts/upgrade` (holds TypeScript on the stable
   5.x line — 7.x is a native preview that breaks the Vercel build).
 - **Subscription renewal**: Fastmail push subscriptions expire after ~30 days.
-  There is no cron in this repo, so re-run `pnpm setup` before expiry (it
-  renews an expiring subscription) — or add a `crons` entry back to
-  `vercel.json` if you want automatic daily renewal.
+  A daily cron (`0 12 * * *`) calls `/api/cron` to renew an expiring
+  subscription automatically. You can also run `pnpm setup` manually.
 - **Health check**: `GET /api/smoke` with the `x-smoke-secret` header (gated by
   `SMOKE_TEST_SECRET`) reports JMAP / push / OCR status.
 

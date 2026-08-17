@@ -60,9 +60,9 @@ Fixes, in order of importance:
 - **Vercel project:** `inbox` is the correct one (Framework Preset "Other",
   domain inbox.labnotes.org). `inbox-3psp` is a stray duplicate with a
   "React Router" preset — delete it.
-- **Hobby plan:** cron jobs max once per day; the cron was removed entirely —
-  processing is push-driven, subscription renewal runs via `pnpm setup` or the
-  (now-removed) cron.
+- **Hobby plan:** cron jobs max once per day. A daily cron (`0 12 * * *`)
+  calls `/api/cron` to renew the push subscription; processing is push-driven
+  (the cron does not re-process digests).
 - `vercel deploy --prod` has intermittently hung locally; the dashboard or
   `git push` (GitHub auto-deploy) are reliable alternatives.
 - Fastmail OAuth 2.0 exists (auth code + PKCE) but requires manual client
