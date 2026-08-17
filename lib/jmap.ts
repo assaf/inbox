@@ -88,9 +88,7 @@ export interface Mailbox {
 
 export async function listMailboxes(): Promise<Mailbox[]> {
   const s = await session();
-  const args = firstArgs(
-    await api([["Mailbox/get", { accountId: s.accountId, ids: null }, "m0"]]),
-  );
+  const args = firstArgs(await api([["Mailbox/get", { accountId: s.accountId, ids: null }, "m0"]]));
   return (args as { list: Mailbox[] }).list;
 }
 
@@ -286,9 +284,7 @@ export async function createSubscription(opts: {
 }
 
 export async function setVerificationCode(id: string, code: string): Promise<void> {
-  await api([
-    ["PushSubscription/set", { update: { [id]: { verificationCode: code } } }, "p2"],
-  ]);
+  await api([["PushSubscription/set", { update: { [id]: { verificationCode: code } } }, "p2"]]);
 }
 
 export async function destroySubscription(id: string): Promise<void> {

@@ -11,7 +11,9 @@ import {
 import { buildEml, typicalDay, adOnlyDay, noMailDay } from "./helpers/fixtures.js";
 
 /** Parse a built message back so assertions hit the decoded HTML/subject. */
-function renderOut(raw: Buffer): Promise<{ html: string | null; subject: string | null; text: string }> {
+function renderOut(
+  raw: Buffer,
+): Promise<{ html: string | null; subject: string | null; text: string }> {
   return new PostalMime().parse(raw).then((m) => ({
     html: m.html ?? null,
     subject: m.subject ?? null,
@@ -31,14 +33,12 @@ describe("isAdAttachment", () => {
     expect(isAdAttachment(name)).toBe(true);
   });
 
-  it.each([
-    "2989868880-068.jpg",
-    "1006624496-066.jpg",
-    "1002338133-067.jpg",
-    "1123485347-058.jpg",
-  ])("keeps real scan %s", (name) => {
-    expect(isAdAttachment(name)).toBe(false);
-  });
+  it.each(["2989868880-068.jpg", "1006624496-066.jpg", "1002338133-067.jpg", "1123485347-058.jpg"])(
+    "keeps real scan %s",
+    (name) => {
+      expect(isAdAttachment(name)).toBe(false);
+    },
+  );
 });
 
 // --- text fragment rejoining --------------------------------------------------

@@ -29,10 +29,7 @@ const FOOTER_MARKERS = [
   "You may have more mail or packages",
   "*These images represent mail pieces",
 ];
-const EMPTY_MARKERS = [
-  "No packages are available to display.",
-  "No mail is available to display.",
-];
+const EMPTY_MARKERS = ["No packages are available to display.", "No mail is available to display."];
 
 const COUNTS_RE = /You have\s+(\d+)\s+mailpiece\(s\)\s+and\s+(\d+)\s+inbound package\(s\)/i;
 const DATE_RE = /(?:Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day\s+(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/;
@@ -80,7 +77,10 @@ export function isAdAttachment(filename: string): boolean {
 }
 
 function clean(s: string): string {
-  return s.normalize("NFKC").replace(/\u00a0/g, " ").trim();
+  return s
+    .normalize("NFKC")
+    .replace(/\u00a0/g, " ")
+    .trim();
 }
 
 // --- text rendering --------------------------------------------------------
@@ -218,7 +218,7 @@ function itemBlocks(
   });
   if (starts.length === 0) return [];
 
-  const boundarySet = new Set<number>([...starts]);
+  const boundarySet = new Set<number>(starts);
   regionLines.forEach((ln, i) => {
     if (sections.includes(ln)) boundarySet.add(i);
   });
@@ -325,8 +325,18 @@ function extractImages(attachments: Attachment[]): { scans: Scan[]; dropped: str
 // --- date parsing ----------------------------------------------------------
 
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 function parseMonth(name: string): number | null {
@@ -375,7 +385,12 @@ export async function parseDigest(raw: Buffer): Promise<Digest> {
 
   const lines = html
     ? htmlToLines(html)
-    : rejoinFragments(text.split("\n").map(clean).filter((l) => l.length > 0));
+    : rejoinFragments(
+        text
+          .split("\n")
+          .map(clean)
+          .filter((l) => l.length > 0),
+      );
   const trimmed = truncateAtFooter(lines);
 
   const { scans, dropped } = extractImages(email.attachments);

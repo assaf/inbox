@@ -29,10 +29,13 @@ export async function ensureSubscription(): Promise<string> {
   const ours = subs.filter((s) => s.deviceClientId === deviceId);
 
   for (const s of ours) {
-    const expiring = !s.expires || new Date(s.expires).getTime() < Date.now() + ms(RENEW_WITHIN_DAYS);
+    const expiring =
+      !s.expires || new Date(s.expires).getTime() < Date.now() + ms(RENEW_WITHIN_DAYS);
     const unverified = !s.verificationCode;
     if (expiring || unverified) {
-      console.warn(`[subscription] destroying ${s.id} (expiring=${expiring}, unverified=${unverified})`);
+      console.warn(
+        `[subscription] destroying ${s.id} (expiring=${expiring}, unverified=${unverified})`,
+      );
       await destroySubscription(s.id);
     }
   }

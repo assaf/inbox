@@ -9,7 +9,10 @@ try {
     if (!t || t.startsWith("#") || !t.includes("=")) continue;
     const i = t.indexOf("=");
     const key = t.slice(0, i).trim();
-    const value = t.slice(i + 1).trim().replace(/^["']|["']$/g, "");
+    const value = t
+      .slice(i + 1)
+      .trim()
+      .replace(/^["']|["']$/g, "");
     if (!(key in process.env)) process.env[key] = value;
   }
 } catch {

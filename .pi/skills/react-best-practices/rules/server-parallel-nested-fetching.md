@@ -14,9 +14,7 @@ When fetching nested data in parallel, chain dependent fetches within each item'
 ```tsx
 const chats = await Promise.all(chatIds.map((id) => getChat(id)));
 
-const chatAuthors = await Promise.all(
-  chats.map((chat) => getUser(chat.author)),
-);
+const chatAuthors = await Promise.all(chats.map((chat) => getUser(chat.author)));
 ```
 
 If one `getChat(id)` out of 100 is extremely slow, the authors of the other 99 chats can't start loading even though their data is ready.
