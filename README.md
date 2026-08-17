@@ -1,21 +1,31 @@
 # inbox — clean USPS Informed Delivery, delivered back to your Inbox
 
-Fastmail delivers a USPS "Daily Digest" that replaces your actual mail scans
-with ads (`mailer-*.jpg` / `content-*.jpg`). This service listens for those
-digests via **Fastmail JMAP push**, strips the ads, rebuilds a one-screen digest
-(packages first, then real scans, then an honest "these mailpieces had no scan"
-note), and imports the clean copy back into your Fastmail Inbox — archiving the
-original.
+A self-hosted service that strips the ads out of USPS "Informed Delivery" digests
+in your own Fastmail inbox. USPS replaces your actual mail scans with ads
+(`mailer-*.jpg` / `content-*.jpg`); this app listens for each digest via
+**Fastmail JMAP push**, rebuilds a one-screen version (packages first, then real
+scans, then an honest "these mailpieces had no scan" note), and imports the clean
+copy back into your Inbox — archiving the original.
 
-Runs on Vercel. All TypeScript. No mailbox polling latency — push means seconds.
+It runs on **your** Vercel account and operates on **your** Fastmail account.
+This is a personal tool you host yourself, not a service you sign up for.
 
-## Flow
+## Prerequisites
+
+- **Fastmail** on a Standard (or higher) plan — API tokens are not available on
+  the Basic plan.
+- A **Vercel** account (the free Hobby tier is enough).
+- **Node 20+** and **pnpm**.
+- **Cloudflare** (optional) — only if you want the envelope OCR that fills in
+  sender names for scans that lack a USPS `FROM:` label.
+
+## How it works
 
 ```
 USPS digest arrives in Fastmail
         │  JMAP StateChange push (RFC 8291 aes128gcm)
         ▼
-Vercel /api/push ──decrypt──► process digests
+Vercel /api/push ──decrypt──► process the digest
         │
         ▼
 Email/query (unprocessed digests) → download raw MIME
@@ -24,19 +34,18 @@ Email/query (unprocessed digests) → download raw MIME
 parse + strip ads + rebuild (lib/digest.ts) + OCR senders (lib/sender.ts)
         │
         ▼
-Email/import into Inbox → mark original read + archived + $usps-processed
+Email/import into Inbox → mark original read + $usps-processed
 ```
 
 - **Push**: Fastmail POSTs an encrypted `StateChange` to `/api/push`. The
-  subscription is created/renewed by `ensureSubscription()` (run by the daily
-  cron and by `pnpm setup`). The webhook also completes the `PushVerification`
-  handshake.
-- **Cron** (`0 12 * * *`, daily): renews the subscription if it is expiring or
-  unverified. Processing is push-driven only — the cron does not re-process.
-- **Idempotency**: processed originals get a `$usps-processed` keyword; the query
-  filters on it. A failed import leaves the original untouched for the next push.
+  subscription is created/renewed by `ensureSubscription()` (via `pnpm setup`).
+  The webhook also completes the `PushVerification` handshake.
+- **Idempotency**: processed originals get a `$usps-processed` keyword; the
+  query filters on it. A failed import leaves the original untouched for the
+  next push. Each digest is marked before it is imported, so a re-fired push
+  can't re-process it into duplicate copies.
 
-## How parsing works (why it doesn't hallucinate)
+### Why it doesn't hallucinate
 
 - **Ad-stripping is a filename deny-list**, not an LLM call: campaign creative is
   always `mailer-*.jpg` / `content-*.jpg`; every other image is a real scan.
@@ -57,17 +66,25 @@ Ported from [ventz/usps-informed-delivery-no-ads](https://github.com/ventz/usps-
 
 ## Setup
 
-1. **Create a Fastmail API token** — Settings → Privacy & Security → Integrations
-   → API tokens. Scope: email read + write (the JMAP Mail capability).
+1. **Clone and install**
 
-2. **Create a Cloudflare Workers AI token** (optional, for envelope OCR) —
-   dash.cloudflare.com → API tokens → Workers AI. Note the account id too.
+   ```
+   git clone <this repo> && cd inbox
+   pnpm install
+   ```
 
-3. **Copy `.env.example` to `.env`** and fill in `FASTMAIL_TOKEN`, `PUBLIC_URL`,
-   and `DEVICE_CLIENT_ID` (any stable string). Add `CLOUDFLARE_ACCOUNT_ID` /
-   `CLOUDFLARE_API_TOKEN` if you want OCR. Then `pnpm install`.
+2. **Create a Fastmail API token** — Settings → Privacy & Security → Integrations
+   → API tokens. This grants full read+write access to your mail, so treat it as
+   a password.
 
-4. **Deploy to Vercel** and add the env vars to the project (production):
+3. **Create a Cloudflare Workers AI token** (optional, for envelope OCR) —
+   dash.cloudflare.com → API tokens → Workers AI. Note the account id.
+
+4. **Configure env vars** — copy `.env.example` to `.env` and fill in
+   `FASTMAIL_TOKEN`, `PUBLIC_URL`, and `DEVICE_CLIENT_ID` (any stable string).
+   Add `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_API_TOKEN` if you want OCR.
+
+5. **Deploy to Vercel** and add the same vars to the project (production):
 
    ```
    vercel env add FASTMAIL_TOKEN <token> production
@@ -79,16 +96,22 @@ Ported from [ventz/usps-informed-delivery-no-ads](https://github.com/ventz/usps-
    vercel deploy --prod
    ```
 
-5. **Generate push keys + create the subscription** — `pnpm setup` writes
-   `PUSH_PRIVATE_KEY` / `PUSH_AUTH` to `.env`, prints two `vercel env add`
-   commands, and creates the subscription. Run the two printed commands, redeploy
-   (`vercel deploy --prod`), then run `pnpm setup` again — the verification
-   webhook can now decrypt, so the subscription is recreated as verified.
+   (A `./scripts/deploy` helper does check → test → secretlint → knip → deploy →
+   smoke-check for you.)
 
-6. **Verify** the handshake: the Vercel function log shows
-   `[push] verified subscription <id>`. Send yourself a test digest (or wait for
-   tomorrow's) — the clean copy appears in Inbox, the original moves to Archive.
-   To process an existing backlog once, run `pnpm process`.
+6. **Generate push keys + create the subscription** — run `pnpm setup`. It writes
+   `PUSH_PRIVATE_KEY` / `PUSH_AUTH` to `.env` and prints two `vercel env add`
+   commands. Run those two commands, redeploy, then run `pnpm setup` again so
+   the verification webhook can decrypt and the subscription is created as
+   verified.
+
+7. **Verify** — the Vercel function log shows
+   `[push] verified subscription <id>`. The next digest (or a test email) should
+   produce a clean "Mail for …" copy in your Inbox and archive the original. To
+   process an existing backlog once, run `pnpm process`.
+
+The deployment serves a small **status page** at the root URL (`/`) showing JMAP
+reachability, push-subscription health, OCR configuration, and recent digests.
 
 ## Env vars
 
@@ -102,9 +125,22 @@ Ported from [ventz/usps-informed-delivery-no-ads](https://github.com/ventz/usps-
 | `CLOUDFLARE_ACCOUNT_ID`          | for OCR     | Cloudflare account id                                |
 | `CLOUDFLARE_API_TOKEN`           | for OCR     | Workers AI token                                     |
 | `CLOUDFLARE_OCR_MODEL`           | no          | defaults `@cf/meta/llama-3.2-11b-vision-instruct`    |
-| `DIGEST_FROM`                    | no          | `.env.example` sets `informeddelivery` (substring)   |
-| `DIGEST_SUBJECT`                 | no          | `.env.example` sets `Daily Digest`                   |
-| `PROCESSED_KEYWORD`              | no          | `.env.example` sets `$usps-processed`                |
+| `DIGEST_FROM`                    | no          | defaults `informeddelivery` (substring match)        |
+| `DIGEST_SUBJECT`                 | no          | defaults `Daily Digest`                              |
+| `PROCESSED_KEYWORD`              | no          | defaults `$usps-processed`                           |
+
+## Operating
+
+- **Deploy**: `./scripts/deploy` (check + test + secretlint + knip + deploy +
+  post-deploy smoke check).
+- **Upgrade dependencies**: `./scripts/upgrade` (holds TypeScript on the stable
+  5.x line — 7.x is a native preview that breaks the Vercel build).
+- **Subscription renewal**: Fastmail push subscriptions expire after ~30 days.
+  There is no cron in this repo, so re-run `pnpm setup` before expiry (it
+  renews an expiring subscription) — or add a `crons` entry back to
+  `vercel.json` if you want automatic daily renewal.
+- **Health check**: `GET /api/smoke` with the `x-smoke-secret` header (gated by
+  `SMOKE_TEST_SECRET`) reports JMAP / push / OCR status.
 
 ## Development
 
@@ -112,11 +148,16 @@ Ported from [ventz/usps-informed-delivery-no-ads](https://github.com/ventz/usps-
 pnpm install
 pnpm check        # format + lint + typecheck
 pnpm test         # test suite
+pnpm secretlint   # no secrets in the repo
+pnpm knip         # no unused files/deps
 pnpm dry-run      # read-only: parse real digests, write clean .eml to out/
 pnpm process [n]  # live: import clean copy + archive original (n = limit)
-pnpm dev          # vercel dev — local function runtime
+pnpm dev          # vercel dev via portless, https://inbox.localhost
 ```
 
 The push flow needs a public URL, so test the parse/render pipeline locally with
 `pnpm dry-run` (writes `out/*.eml`, no inbox changes), and test the full push
 path against a deployed preview.
+
+Hard-won notes on Fastmail JMAP quirks, the Cloudflare OCR setup, and a past
+re-import loop are in [`docs/gotchas.md`](docs/gotchas.md).
