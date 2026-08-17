@@ -1,11 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { processedKeyword } from "../lib/config.js";
 import { esc } from "../lib/html.js";
-import {
-  api,
-  session,
-  unprocessedDigestIds,
-} from "../lib/jmap.js";
+import { recentProcessed, unprocessedDigestIds } from "../lib/jmap.js";
 import { collectStatus } from "../lib/status.js";
 
 interface Row {
@@ -35,31 +30,8 @@ async function statusRows(): Promise<{ rows: Row[]; pending: string; recent: str
 
   const recent: string[] = [];
   try {
-    const s = await session();
-    const kw = processedKeyword();
-    const q = await api([
-      [
-        "Email/query",
-        {
-          accountId: s.accountId,
-          filter: { hasKeyword: kw },
-          sort: [{ property: "receivedAt", isAscending: false }],
-          limit: 5,
-        },
-        "q0",
-      ],
-    ]);
-    const ids = (q[0]?.[1] as { ids: string[] } | undefined)?.ids ?? [];
-    if (ids.length) {
-      const g = await api([
-        ["Email/get", { accountId: s.accountId, ids, properties: ["subject", "receivedAt"] }, "g0"],
-      ]);
-      const list =
-        (g[0]?.[1] as { list: Array<{ subject?: string; receivedAt?: string }> } | undefined)
-          ?.list ?? [];
-      for (const e of list) {
-        recent.push(`${e.receivedAt?.slice(0, 10) ?? "?"} — ${e.subject ?? ""}`);
-      }
+    for (const e of await recentProcessed(5)) {
+      recent.push(`${e.receivedAt ? e.receivedAt.slice(0, 10) : "?"} — ${e.subject}`);
     }
   } catch {
     // recent history is best-effort
@@ -73,11 +45,14 @@ function page(rows: Row[], pending: string, recent: string[]): string {
   const dot = allOk ? "#16a34a" : "#dc2626";
   const headline = allOk ? "healthy" : "attention needed";
 
+  const symbol = (ok: boolean): string =>
+    `<span role="img" aria-label="${ok ? "ok" : "problem"}">${ok ? "✓" : "✗"}</span>`;
+
   const rowHtml = rows
     .map(
       (r) => `
       <tr>
-        <td style="padding:8px 12px;color:${r.ok ? "#16a34a" : "#dc2626"};font-weight:700;">${r.ok ? "✓" : "✗"}</td>
+        <td style="padding:8px 12px;color:${r.ok ? "#16a34a" : "#dc2626"};font-weight:700;">${symbol(r.ok)}</td>
         <td style="padding:8px 12px;font-weight:600;">${esc(r.name)}</td>
         <td style="padding:8px 12px;color:var(--muted);">${esc(r.detail)}</td>
       </tr>`,
@@ -87,6 +62,8 @@ function page(rows: Row[], pending: string, recent: string[]): string {
   const recentHtml = recent.length
     ? recent.map((r) => `<li style="margin:4px 0;color:var(--muted);">${esc(r)}</li>`).join("")
     : `<li style="margin:4px 0;color:var(--muted);">none yet</li>`;
+
+  const th = "padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:1px solid var(--border);font-weight:600;";
 
   return `<!doctype html>
 <html lang="en">
@@ -134,7 +111,14 @@ function page(rows: Row[], pending: string, recent: string[]): string {
   <p class="sub">Cleans Informed Delivery digests via Fastmail JMAP push.</p>
 
   <div class="card">
-    <table>${rowHtml}</table>
+    <table aria-label="Service status">
+      <thead><tr>
+        <th scope="col" style="${th}">Status</th>
+        <th scope="col" style="${th}">Check</th>
+        <th scope="col" style="${th}">Detail</th>
+      </tr></thead>
+      <tbody>${rowHtml}</tbody>
+    </table>
   </div>
 
   <div class="card pending">

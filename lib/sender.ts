@@ -1,6 +1,7 @@
 import { cloudflareConfigured, envOpt } from "./config.js";
 import { bearer, REQUEST_TIMEOUT_MS } from "./http.js";
 import type { Digest } from "./digest.js";
+import { log } from "./log.js";
 
 const CF_API = "https://api.cloudflare.com/client/v4/accounts";
 const VISION_MODEL = "@cf/meta/llama-3.2-11b-vision-instruct";
@@ -61,7 +62,7 @@ async function runVision(prompt: string, image: Buffer): Promise<string | null> 
   if (!res) return null;
   const text = await res.text();
   if (!res.ok) {
-    console.warn(`[sender] Cloudflare vision failed: ${res.status} ${text.slice(0, 300)}`);
+    log.warn("cloudflare vision failed", { status: res.status, body: text.slice(0, 300) });
     return null;
   }
   try {

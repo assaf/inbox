@@ -1,5 +1,6 @@
 import { cloudflareConfigured, deviceClientId } from "./config.js";
 import { listMailboxes, listSubscriptions } from "./jmap.js";
+import { log } from "./log.js";
 
 export interface ServiceStatus {
   jmapOk: boolean;
@@ -22,7 +23,7 @@ export async function collectStatus(): Promise<ServiceStatus> {
     jmapOk = boxes.length > 0;
     jmapDetail = `${boxes.length} mailboxes`;
   } catch (err) {
-    console.error("[status] jmap check failed:", err);
+    log.error("status jmap check failed", { err: String(err) });
     jmapDetail = String(err);
   }
 
@@ -37,7 +38,7 @@ export async function collectStatus(): Promise<ServiceStatus> {
       pushOk = true;
     }
   } catch (err) {
-    console.error("[status] subscription check failed:", err);
+    log.error("status subscription check failed", { err: String(err) });
     pushDetail = String(err);
   }
 

@@ -1,6 +1,7 @@
 import { deviceClientId, env } from "./config.js";
 import { p256dhFromPrivate } from "./keys.js";
 import { listSubscriptions, createSubscription, destroySubscription } from "./jmap.js";
+import { log } from "./log.js";
 
 const SUBSCRIPTION_LIFETIME_DAYS = 30;
 const RENEW_WITHIN_DAYS = 7;
@@ -32,7 +33,7 @@ export async function ensureSubscription(): Promise<string> {
     const expiring =
       !s.expires || new Date(s.expires).getTime() < Date.now() + ms(RENEW_WITHIN_DAYS);
     if (expiring) {
-      console.warn(`[subscription] destroying ${s.id} (expiring)`);
+      log.warn("destroying expiring subscription", { id: s.id });
       await destroySubscription(s.id);
     }
   }
@@ -51,6 +52,6 @@ export async function ensureSubscription(): Promise<string> {
     deviceClientId: deviceId,
     expires,
   });
-  console.info(`[subscription] created ${id} -> ${pushUrl()}`);
+  log.info("subscription created", { id, url: pushUrl() });
   return id;
 }

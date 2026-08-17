@@ -152,7 +152,9 @@ both produce incorrect output for this SVG (opaque corners / white background).
   5.x line — 7.x is a native preview that breaks the Vercel build).
 - **Subscription renewal**: Fastmail push subscriptions expire after ~30 days.
   A daily cron (`0 12 * * *`) calls `/api/cron` to renew an expiring
-  subscription automatically. You can also run `pnpm setup` manually.
+  subscription and process any digests that arrived without a push (the
+  catch-up net for missed StateChange pushes). You can also run `pnpm setup`
+  manually.
 - **Health check**: `GET /api/smoke` with the `x-smoke-secret` header (gated by
   `SMOKE_TEST_SECRET`) reports JMAP / push / OCR status.
 

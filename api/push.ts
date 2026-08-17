@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { env } from "../lib/config.js";
 import { decryptPushBody } from "../lib/decrypt.js";
 import { setVerificationCode } from "../lib/jmap.js";
+import { log } from "../lib/log.js";
 import { processNewDigests } from "../lib/process.js";
 
 const MAX_BODY_BYTES = 1024 * 1024; // 1 MiB — a push payload is a few KB
@@ -43,7 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const body = await readBody(req);
     payload = decryptPushBody(body, env("PUSH_PRIVATE_KEY"), env("PUSH_AUTH"));
   } catch (err) {
-    console.error("[push] decrypt failed:", err);
+    log.error("push decrypt failed", { err: String(err) });
     res.status(400).json({ error: "decrypt failed" });
     return;
   }
@@ -55,21 +56,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const code = String(payload["verificationCode"] ?? "");
     try {
       await setVerificationCode(id, code);
-      console.info(`[push] verified subscription ${id}`);
+      log.info("push verified subscription", { id });
     } catch (err) {
-      console.error("[push] verification update failed:", err);
+      log.error("push verification update failed", { err: String(err) });
       res.status(500).json({ error: "verification failed" });
       return;
     }
   } else if (type === "StateChange") {
-    // Best effort. The 15-minute cron is the catch-up net for anything missed.
+    // Best effort. The daily cron is the catch-up net for anything missed.
     try {
       await processNewDigests(1);
     } catch (err) {
-      console.error("[push] processing failed:", err);
+      log.error("push processing failed", { err: String(err) });
     }
   } else {
-    console.warn(`[push] unknown payload type: ${type}`);
+    log.warn("push unknown payload type", { type });
   }
 
   res.status(200).json({ ok: true });
