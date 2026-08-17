@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Deploy inbox to production:
+#   1. check (fmt, lint, types)
+#   2. test
+#   3. secretlint (no secrets leak)
+#   4. knip (no unused files/deps)
+#   5. deploy with the Vercel CLI
+#   6. post-deploy smoke check (JMAP + push subscription + OCR, /api/smoke)
+#   7. open the production site
+set -eo pipefail
+
+PROD_DOMAIN="inbox.labnotes.org"
+
+echo -e "\033[0;32m--- Step 1: Check (fmt, lint, types) ---\033[0m"
+pnpm check
+
+echo -e "\033[0;32m--- Step 2: Run tests ---\033[0m"
+pnpm test
+
+echo -e "\033[0;32m--- Step 3: secretlint ---\033[0m"
+pnpm secretlint
+
+echo -e "\033[0;32m--- Step 4: knip ---\033[0m"
+pnpm knip
+
+echo -e "\033[0;32m--- Step 5: Deploy to Vercel (production) ---\033[0m"
+vercel deploy --prod --yes
+
+echo -e "\033[0;32m--- Step 6: Post-deploy smoke check ---\033[0m"
+if [ -z "$SMOKE_TEST_SECRET" ]; then
+  echo -e "\033[0;33mSMOKE_TEST_SECRET is not set — skipping the smoke check.\033[0m"
+  echo "Set it locally (and in Vercel production) to gate GET /api/smoke via the x-smoke-secret header."
+else
+  SMOKE_URL="https://${PROD_DOMAIN}/api/smoke"
+  if curl -sf -H "x-smoke-secret: ${SMOKE_TEST_SECRET}" "$SMOKE_URL" > /dev/null; then
+    echo -e "\033[0;32mSmoke check passed: ${SMOKE_URL}\033[0m"
+  else
+    echo -e "\033[0;31mSmoke check FAILED: ${SMOKE_URL}\033[0m"
+    curl -s -H "x-smoke-secret: ${SMOKE_TEST_SECRET}" "$SMOKE_URL"
+    exit 1
+  fi
+fi
+
+echo -e "\033[0;32m--- Step 7: Open production site ---\033[0m"
+open "https://${PROD_DOMAIN}"
+
+echo -e "\033[0;34m--- Deployed ---\033[0m"
