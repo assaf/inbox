@@ -1,5 +1,5 @@
 import { envOpt } from "./config.js";
-import { bearer } from "./http.js";
+import { bearer, REQUEST_TIMEOUT_MS } from "./http.js";
 import type { Digest } from "./digest.js";
 
 const CF_API = "https://api.cloudflare.com/client/v4/accounts";
@@ -32,6 +32,7 @@ async function cfRun(model: string, body: unknown): Promise<Response | null> {
     method: "POST",
     headers: { ...bearer(token), "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
 }
 
@@ -83,7 +84,7 @@ export async function ocrSender(image: Buffer): Promise<string | null> {
   return raw ? cleanSender(raw) : null;
 }
 
-function cleanSender(raw: string): string | null {
+export function cleanSender(raw: string): string | null {
   const line = raw
     .replace(/\*\*/g, "")
     .split("\n")

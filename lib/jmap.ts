@@ -1,5 +1,5 @@
-import { env } from "./config.js";
-import { bearer } from "./http.js";
+import { env, envDefault } from "./config.js";
+import { bearer, REQUEST_TIMEOUT_MS } from "./http.js";
 
 const SESSION_URL = "https://api.fastmail.com/jmap/session";
 
@@ -27,6 +27,7 @@ export async function session(): Promise<Session> {
   sessionPromise ??= (async () => {
     const res = await fetch(SESSION_URL, {
       headers: bearer(env("FASTMAIL_TOKEN")),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     if (!res.ok) {
       throw new Error(`JMAP session failed: ${res.status} ${await res.text()}`);
@@ -63,6 +64,7 @@ export async function api(methodCalls: unknown[][]): Promise<[string, unknown, s
       using: ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:mail"],
       methodCalls,
     }),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
   if (!res.ok) {
     throw new Error(`JMAP API failed: ${res.status} ${await res.text()}`);
@@ -70,6 +72,20 @@ export async function api(methodCalls: unknown[][]): Promise<[string, unknown, s
   const j = (await res.json()) as ApiResponse;
   for (const [name, args] of j.methodResponses) {
     if (name === "error") throw new Error(`JMAP ${name} error: ${JSON.stringify(args)}`);
+    // A /set or /import call can "succeed" while individual objects fail with
+    // notUpdated/notCreated/notDestroyed. Fastmail reports invalid keyword
+    // paths this way, and it silently hid a re-import loop — surface it.
+    const a = args as {
+      notUpdated?: Record<string, unknown>;
+      notCreated?: Record<string, unknown>;
+      notDestroyed?: Record<string, unknown>;
+    };
+    for (const key of ["notUpdated", "notCreated", "notDestroyed"] as const) {
+      const failures = a[key];
+      if (failures && Object.keys(failures).length > 0) {
+        throw new Error(`JMAP ${name} ${key}: ${JSON.stringify(failures)}`);
+      }
+    }
   }
   return j.methodResponses;
 }
@@ -141,6 +157,7 @@ export async function rawEmail(id: string): Promise<RawEmail> {
 
   const res = await fetch(url, {
     headers: bearer(env("FASTMAIL_TOKEN")),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
   if (!res.ok) {
     throw new Error(`email download failed: ${res.status} ${await res.text()}`);
@@ -158,9 +175,9 @@ export async function rawEmail(id: string): Promise<RawEmail> {
 export async function unprocessedDigestIds(): Promise<string[]> {
   const s = await session();
   const filter = {
-    from: env("DIGEST_FROM"),
-    subject: env("DIGEST_SUBJECT"),
-    notKeyword: env("PROCESSED_KEYWORD"),
+    from: envDefault("DIGEST_FROM", "informeddelivery"),
+    subject: envDefault("DIGEST_SUBJECT", "Daily Digest"),
+    notKeyword: envDefault("PROCESSED_KEYWORD", "$usps-processed"),
   };
   const qargs = firstArgs(
     await api([
@@ -192,6 +209,7 @@ export async function importEmail(raw: Buffer, receivedAt: string): Promise<stri
       "Content-Type": "message/rfc822",
     },
     body: raw,
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
   if (!up.ok) throw new Error(`upload failed: ${up.status} ${await up.text()}`);
   const upj = (await up.json()) as { blobId: string };
@@ -210,7 +228,7 @@ export async function importEmail(raw: Buffer, receivedAt: string): Promise<stri
               mailboxIds: { [inbox]: true },
               // Mark the clean copy processed so it can never match the digest
               // query and trigger a re-import loop.
-              keywords: { [env("PROCESSED_KEYWORD")]: true },
+              keywords: { [envDefault("PROCESSED_KEYWORD", "$usps-processed")]: true },
               receivedAt,
             },
           },
@@ -235,7 +253,7 @@ export async function markProcessed(id: string): Promise<void> {
         accountId: s.accountId,
         update: {
           [id]: {
-            [`keywords/${env("PROCESSED_KEYWORD")}`]: true,
+            [`keywords/${envDefault("PROCESSED_KEYWORD", "$usps-processed")}`]: true,
             // Fastmail rejects RFC-style `\seen`; its seen keyword is `$seen`.
             "keywords/$seen": true,
           },

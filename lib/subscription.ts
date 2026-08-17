@@ -1,4 +1,4 @@
-import { env } from "./config.js";
+import { env, envDefault } from "./config.js";
 import { p256dhFromPrivate } from "./keys.js";
 import { listSubscriptions, createSubscription, destroySubscription } from "./jmap.js";
 
@@ -21,7 +21,7 @@ export function pushUrl(): string {
  * failed). Recreating triggers a fresh verification push to our own webhook.
  */
 export async function ensureSubscription(): Promise<string> {
-  const deviceId = env("DEVICE_CLIENT_ID");
+  const deviceId = envDefault("DEVICE_CLIENT_ID", "usps-digest-cleaner");
   const p256dh = p256dhFromPrivate(env("PUSH_PRIVATE_KEY"));
   const auth = env("PUSH_AUTH");
 

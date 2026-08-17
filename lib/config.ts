@@ -28,3 +28,7 @@ export function env(name: string): string {
 export function envOpt(name: string): string | undefined {
   return process.env[name] || undefined;
 }
+
+export function envDefault(name: string, fallback: string): string {
+  return process.env[name] || fallback;
+}
