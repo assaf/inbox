@@ -1,0 +1,10 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["api/*.ts", "scripts/*.ts", "test/**/*.ts"],
+  "ignoreBinaries": ["vercel"],
+  "ignoreDependencies": [
+    "@secretlint/secretlint-rule-pattern",
+    "@secretlint/secretlint-rule-preset-recommend"
+  ],
+  "ignoreExportsUsedInFile": true
+}

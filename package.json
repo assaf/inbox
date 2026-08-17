@@ -13,6 +13,8 @@
     "process": "tsx scripts/process.ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "secretlint": "secretlint \"**/*\"",
+    "knip": "knip",
     "dev": "portless run -- tsx scripts/dev.ts"
   },
   "dependencies": {
@@ -22,10 +24,14 @@
     "postal-mime": "^3.0.0"
   },
   "devDependencies": {
+    "@secretlint/secretlint-rule-pattern": "^13.0.4",
+    "@secretlint/secretlint-rule-preset-recommend": "^13.0.4",
     "@types/node": "^26.2.0",
     "@types/nodemailer": "^8.0.1",
     "@vercel/node": "^5.10.1",
+    "knip": "^6.32.2",
     "portless": "^0.15.5",
+    "secretlint": "^13.0.4",
     "tsx": "^4.23.12",
     "typescript": "^7.0.2",
     "vite-plus": "^0.2.9",
