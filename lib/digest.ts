@@ -98,11 +98,13 @@ function textNodes(html: string): string[] {
     }
     for (const child of n.childNodes ?? []) walk(child);
   };
-  walk(document.documentElement);
+  // Walk the Document, not documentElement: linkedom sets documentElement to
+  // only the FIRST top-level node when the input is a fragment.
+  walk(document);
   return parts;
 }
 
-function rejoinFragments(lines: string[]): string[] {
+export function rejoinFragments(lines: string[]): string[] {
   const out: string[] = [];
   let i = 0;
   const n = lines.length;
@@ -146,7 +148,7 @@ function truncateAtFooter(lines: string[]): string[] {
 
 // --- positional FROM: -> cid mapping ---------------------------------------
 
-function mapCidSenders(html: string): Map<string, string> {
+export function mapCidSenders(html: string): Map<string, string> {
   const { document } = parseHTML(html);
   for (const el of document.querySelectorAll("script,style")) el.remove();
 
@@ -179,19 +181,17 @@ function mapCidSenders(html: string): Map<string, string> {
       }
       return;
     }
-    if (n.nodeType === 1) {
-      const tag = (n.tagName ?? "").toLowerCase();
-      if (tag === "img") {
-        const src = (n.getAttribute?.("src") ?? "").trim();
-        if (src.toLowerCase().startsWith("cid:") && lastFrom) {
-          mapping.set(src.slice(4).trim().replace(/^<|>$/g, ""), lastFrom);
-        }
-        return;
+    if (n.nodeType === 1 && (n.tagName ?? "").toLowerCase() === "img") {
+      const src = (n.getAttribute?.("src") ?? "").trim();
+      if (src.toLowerCase().startsWith("cid:") && lastFrom) {
+        mapping.set(src.slice(4).trim().replace(/^<|>$/g, ""), lastFrom);
       }
-      for (const child of n.childNodes ?? []) walk(child);
+      return;
     }
+    for (const child of n.childNodes ?? []) walk(child);
   };
-  walk(document.documentElement);
+  // Walk the Document, not documentElement (see textNodes).
+  walk(document);
   return mapping;
 }
 
@@ -576,7 +576,7 @@ function buildHtml(d: Digest): string {
   }
 
   return (
-    `<!doctype html><html><body style="margin:0;padding:0;background:${BG};">` +
+    `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:${BG};">` +
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" ` +
     `style="background:${BG};"><tr><td align="center" style="padding:20px 0;">` +
     `<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" ` +
