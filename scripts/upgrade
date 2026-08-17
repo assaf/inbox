@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Upgrade dependencies to latest, holding TypeScript on the stable 5.x line
+# (7.x is the native preview and breaks the Vercel build with a readFile error).
 set -eo pipefail
 
 echo -e "\033[32m  Upgrading pnpm …\033[0m"
@@ -7,31 +9,31 @@ pnpm self-update
 echo -e "\033[32m  Upgrading dependencies …\033[0m"
 pnpm update --latest
 
+echo -e "\033[32m  Holding TypeScript on 5.x …\033[0m"
+pnpm add -D typescript@5.8.3
+
 echo -e "\033[32m  Deduping dependencies …\033[0m"
 pnpm dedupe --ignore-scripts
 pnpm prune --ignore-scripts
 
-echo -e "\033[32m  Security audit …\033[0m"
-pnpm install
-git add package.json pnpm-lock.yaml
-
-echo -e "\033[32m  Running tests …\033[0m"
-rm -rf __screenshots__/*
-vpr check
-vpr test
+echo -e "\033[32m  Checking …\033[0m"
+pnpm check
+pnpm test
+pnpm secretlint
+pnpm knip
 
 echo -e "\033[32m  Auditing dependencies …\033[0m"
-pnpm pnpm audit --prod || echo "Security audit failed"
+pnpm audit --prod || echo "Security audit failed"
 
-echo -e "\033[32m  Commiting changes …\033[0m"
-git --no-pager diff --unified=0 --color --word-diff HEAD~1 package.json
-git commit -m "Upgrade dependencies" || echo
+echo -e "\033[32m  Committing changes …\033[0m"
+git add package.json pnpm-lock.yaml
+git commit -m "chore: upgrade dependencies" || echo
 
 echo -e "\033[32m  Cleaning up …\033[0m"
 git gc --prune=now || echo
 
 echo -e "\033[32m  Checking for outdated dependencies …\033[0m"
-pnpm outdated
+pnpm outdated || true
 
-terminal-notifier -sound default  -title "$0" -message "Done!"
+terminal-notifier -sound default -title "$0" -message "Done!" || true
 exit 0
