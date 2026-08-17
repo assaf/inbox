@@ -49,7 +49,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   } else if (type === "StateChange") {
     // Best effort. The 15-minute cron is the catch-up net for anything missed.
     try {
-      await processNewDigests();
+      await processNewDigests(1);
     } catch (err) {
       console.error("[push] processing failed:", err);
     }
