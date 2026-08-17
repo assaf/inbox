@@ -121,6 +121,14 @@ function page(rows: Row[], pending: string, recent: string[]): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>inbox — USPS digest cleaner</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+<meta name="theme-color" content="#111827">
 <style>
   :root { --bg:#f4f5f7; --card:#fff; --ink:#1c1e21; --muted:#6b7280; --border:#e5e7eb; }
   @media (prefers-color-scheme: dark) {
@@ -130,7 +138,9 @@ function page(rows: Row[], pending: string, recent: string[]): string {
   body { margin:0; padding:24px; font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink); }
   .wrap { max-width:640px; margin:0 auto; }
   .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px 24px; margin-bottom:16px; }
-  h1 { font-size:20px; margin:0 0 4px; }
+  h1 { font-size:20px; margin:0; }
+  .brand { display:flex; align-items:center; gap:10px; margin:0 0 4px; }
+  .brand img { width:28px; height:28px; flex-shrink:0; }
   .sub { color:var(--muted); margin:0 0 16px; }
   table { border-collapse:collapse; width:100%; }
   td { border-bottom:1px solid var(--border); }
@@ -144,7 +154,10 @@ function page(rows: Row[], pending: string, recent: string[]): string {
 </head>
 <body>
 <div class="wrap">
-  <h1>inbox — USPS digest cleaner</h1>
+  <div class="brand">
+    <img src="/favicon.svg" alt="" width="28" height="28">
+    <h1>inbox — USPS digest cleaner</h1>
+  </div>
   <p class="sub">Cleans Informed Delivery digests via Fastmail JMAP push.</p>
 
   <div class="card">
