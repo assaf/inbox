@@ -1,14 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { envDefault, envOpt } from "../lib/config.js";
-import { listMailboxes, listSubscriptions } from "../lib/jmap.js";
+import { envOpt } from "../lib/config.js";
 import { safeEqual } from "../lib/secure.js";
-
-interface SmokeStatus {
-  ok: boolean;
-  jmap: boolean;
-  pushSubscription: boolean;
-  cloudflareOcr: boolean;
-}
+import { collectStatus } from "../lib/status.js";
 
 /**
  * Health check for the deployed pipeline: JMAP reachable, push subscription
@@ -26,30 +19,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
-  const status: SmokeStatus = {
-    ok: true,
-    jmap: false,
-    pushSubscription: false,
-    cloudflareOcr: false,
-  };
-
-  try {
-    const boxes = await listMailboxes();
-    status.jmap = boxes.length > 0;
-  } catch (err) {
-    console.error("[smoke] jmap check failed:", err);
-  }
-
-  try {
-    const deviceId = envDefault("DEVICE_CLIENT_ID", "usps-digest-cleaner");
-    const subs = await listSubscriptions();
-    status.pushSubscription = subs.some((s) => s.deviceClientId === deviceId);
-  } catch (err) {
-    console.error("[smoke] subscription check failed:", err);
-  }
-
-  status.cloudflareOcr = Boolean(envOpt("CLOUDFLARE_ACCOUNT_ID") && envOpt("CLOUDFLARE_API_TOKEN"));
-  status.ok = status.jmap && status.pushSubscription && status.cloudflareOcr;
-
-  res.status(status.ok ? 200 : 500).json(status);
+  const status = await collectStatus();
+  const ok = status.jmapOk && status.pushOk && status.ocrOk;
+  res.status(ok ? 200 : 500).json({
+    ok,
+    jmap: status.jmapOk,
+    pushSubscription: status.pushOk,
+    cloudflareOcr: status.ocrOk,
+  });
 }

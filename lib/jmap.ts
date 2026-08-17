@@ -1,4 +1,4 @@
-import { env, envDefault } from "./config.js";
+import { env, envDefault, processedKeyword } from "./config.js";
 import { bearer, REQUEST_TIMEOUT_MS } from "./http.js";
 
 const SESSION_URL = "https://api.fastmail.com/jmap/session";
@@ -177,7 +177,7 @@ export async function unprocessedDigestIds(): Promise<string[]> {
   const filter = {
     from: envDefault("DIGEST_FROM", "informeddelivery"),
     subject: envDefault("DIGEST_SUBJECT", "Daily Digest"),
-    notKeyword: envDefault("PROCESSED_KEYWORD", "$usps-processed"),
+    notKeyword: processedKeyword(),
   };
   const qargs = firstArgs(
     await api([
@@ -228,7 +228,7 @@ export async function importEmail(raw: Buffer, receivedAt: string): Promise<stri
               mailboxIds: { [inbox]: true },
               // Mark the clean copy processed so it can never match the digest
               // query and trigger a re-import loop.
-              keywords: { [envDefault("PROCESSED_KEYWORD", "$usps-processed")]: true },
+              keywords: { [processedKeyword()]: true },
               receivedAt,
             },
           },
@@ -253,7 +253,7 @@ export async function markProcessed(id: string): Promise<void> {
         accountId: s.accountId,
         update: {
           [id]: {
-            [`keywords/${envDefault("PROCESSED_KEYWORD", "$usps-processed")}`]: true,
+            [`keywords/${processedKeyword()}`]: true,
             // Fastmail rejects RFC-style `\seen`; its seen keyword is `$seen`.
             "keywords/$seen": true,
           },

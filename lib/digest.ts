@@ -1,6 +1,7 @@
 import PostalMime, { type Attachment } from "postal-mime";
 import { parseHTML } from "linkedom";
 import MailComposer from "nodemailer/lib/mail-composer/index.js";
+import { esc } from "./html.js";
 
 // ---------------------------------------------------------------------------
 // Parsing an Informed Delivery digest into a structured Digest.
@@ -85,9 +86,15 @@ function clean(s: string): string {
 
 // --- text rendering --------------------------------------------------------
 
-function textNodes(html: string): string[] {
+/** Parse HTML and strip script/style elements (shared by text walkers). */
+function parseHtml(html: string): ReturnType<typeof parseHTML>["document"] {
   const { document } = parseHTML(html);
   for (const el of document.querySelectorAll("script,style")) el.remove();
+  return document;
+}
+
+function textNodes(html: string): string[] {
+  const document = parseHtml(html);
   const parts: string[] = [];
   const walk = (node: unknown): void => {
     const n = node as { nodeType?: number; textContent?: string; childNodes?: unknown[] };
@@ -149,8 +156,7 @@ function truncateAtFooter(lines: string[]): string[] {
 // --- positional FROM: -> cid mapping ---------------------------------------
 
 export function mapCidSenders(html: string): Map<string, string> {
-  const { document } = parseHTML(html);
-  for (const el of document.querySelectorAll("script,style")) el.remove();
+  const document = parseHtml(html);
 
   const mapping = new Map<string, string>();
   let lastFrom: string | null = null;
@@ -448,14 +454,6 @@ const WARN_BG = "#fff8e6";
 const WARN_BORDER = "#f0c36d";
 const WARN_INK = "#7a5b12";
 const TRACKING_URL = "https://tools.usps.com/go/TrackConfirmAction?tLabels={}";
-
-function esc(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 function plural(n: number, word: string): string {
   return n === 1 ? `${n} ${word}` : `${n} ${word}s`;

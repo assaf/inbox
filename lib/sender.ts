@@ -1,4 +1,4 @@
-import { envOpt } from "./config.js";
+import { cloudflareConfigured, envOpt } from "./config.js";
 import { bearer, REQUEST_TIMEOUT_MS } from "./http.js";
 import type { Digest } from "./digest.js";
 
@@ -18,10 +18,6 @@ interface VisionResult {
   success?: boolean;
   errors?: CfError[];
   result?: { response?: string | null };
-}
-
-function configured(): boolean {
-  return Boolean(envOpt("CLOUDFLARE_ACCOUNT_ID") && envOpt("CLOUDFLARE_API_TOKEN"));
 }
 
 async function cfRun(model: string, body: unknown): Promise<Response | null> {
@@ -78,7 +74,7 @@ async function runVision(prompt: string, image: Buffer): Promise<string | null> 
 }
 
 export async function ocrSender(image: Buffer): Promise<string | null> {
-  if (!configured()) return null;
+  if (!cloudflareConfigured()) return null;
   await ensureLicense();
   const raw = await runVision(PROMPT, image);
   return raw ? cleanSender(raw) : null;
@@ -103,7 +99,7 @@ export function cleanSender(raw: string): string | null {
 
 /** Fill in listedSender for scans missing one. No-op when unconfigured. */
 export async function enrichSenders(digest: Digest): Promise<void> {
-  if (!configured()) return;
+  if (!cloudflareConfigured()) return;
   const targets = digest.scans.filter((s) => !s.listedSender);
   await Promise.all(
     targets.map(async (scan) => {

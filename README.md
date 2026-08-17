@@ -114,6 +114,20 @@ Ported from [ventz/usps-informed-delivery-no-ads](https://github.com/ventz/usps-
 The deployment serves a small **status page** at the root URL (`/`) showing JMAP
 reachability, push-subscription health, OCR configuration, and recent digests.
 
+## Favicon assets
+
+`public/` holds the site icon: `favicon.svg` is the source of truth and the six
+PNG fallbacks (`favicon-16x16.png` … `android-chrome-512x512.png`) are
+rasterized from it. **Regenerate the PNGs whenever the SVG changes:**
+
+```sh
+for s in 16 32 48 180 192 512; do npx --yes sharp-cli -i public/favicon.svg -o /tmp/favicon-$s.png resize $s $s; done
+# then copy each /tmp/favicon-<s>.png to its public/ name
+```
+
+Use `sharp-cli` (libvips) — ImageMagick's MSVG renderer and macOS `qlmanage`
+both produce incorrect output for this SVG (opaque corners / white background).
+
 ## Env vars
 
 | Var                              | Required    | Notes                                                |

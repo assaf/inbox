@@ -1,20 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { envDefault, envOpt } from "../lib/config.js";
+import { processedKeyword } from "../lib/config.js";
+import { esc } from "../lib/html.js";
 import {
   api,
-  listMailboxes,
-  listSubscriptions,
   session,
   unprocessedDigestIds,
 } from "../lib/jmap.js";
-
-function esc(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+import { collectStatus } from "../lib/status.js";
 
 interface Row {
   name: string;
@@ -23,35 +15,16 @@ interface Row {
 }
 
 async function statusRows(): Promise<{ rows: Row[]; pending: string; recent: string[] }> {
-  const rows: Row[] = [];
-
-  try {
-    const boxes = await listMailboxes();
-    rows.push({ name: "JMAP", ok: true, detail: `${boxes.length} mailboxes` });
-  } catch (err) {
-    rows.push({ name: "JMAP", ok: false, detail: String(err) });
-  }
-
-  try {
-    const deviceId = envDefault("DEVICE_CLIENT_ID", "usps-digest-cleaner");
-    const subs = (await listSubscriptions()).filter((s) => s.deviceClientId === deviceId);
-    if (subs.length === 0) {
-      rows.push({ name: "Push subscription", ok: false, detail: "none — run `pnpm setup`" });
-    } else {
-      const s = subs[0]!;
-      const exp = s.expires ? new Date(s.expires).toLocaleString() : "no expiry";
-      rows.push({ name: "Push subscription", ok: true, detail: `id ${s.id} · expires ${exp}` });
-    }
-  } catch (err) {
-    rows.push({ name: "Push subscription", ok: false, detail: String(err) });
-  }
-
-  const ocr = Boolean(envOpt("CLOUDFLARE_ACCOUNT_ID") && envOpt("CLOUDFLARE_API_TOKEN"));
-  rows.push({
-    name: "Envelope OCR",
-    ok: ocr,
-    detail: ocr ? "Cloudflare configured" : "CLOUDFLARE_* vars missing",
-  });
+  const status = await collectStatus();
+  const rows: Row[] = [
+    { name: "JMAP", ok: status.jmapOk, detail: status.jmapDetail },
+    { name: "Push subscription", ok: status.pushOk, detail: status.pushDetail },
+    {
+      name: "Envelope OCR",
+      ok: status.ocrOk,
+      detail: status.ocrOk ? "Cloudflare configured" : "CLOUDFLARE_* vars missing",
+    },
+  ];
 
   let pending = "?";
   try {
@@ -63,7 +36,7 @@ async function statusRows(): Promise<{ rows: Row[]; pending: string; recent: str
   const recent: string[] = [];
   try {
     const s = await session();
-    const kw = envDefault("PROCESSED_KEYWORD", "$usps-processed");
+    const kw = processedKeyword();
     const q = await api([
       [
         "Email/query",

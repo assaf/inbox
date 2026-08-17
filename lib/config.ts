@@ -32,3 +32,18 @@ export function envOpt(name: string): string | undefined {
 export function envDefault(name: string, fallback: string): string {
   return process.env[name] || fallback;
 }
+
+/** Stable id for this device's push subscription. */
+export function deviceClientId(): string {
+  return envDefault("DEVICE_CLIENT_ID", "usps-digest-cleaner");
+}
+
+/** Keyword that marks a digest as already cleaned. */
+export function processedKeyword(): string {
+  return envDefault("PROCESSED_KEYWORD", "$usps-processed");
+}
+
+/** True when both Cloudflare OCR env vars are present. */
+export function cloudflareConfigured(): boolean {
+  return Boolean(envOpt("CLOUDFLARE_ACCOUNT_ID") && envOpt("CLOUDFLARE_API_TOKEN"));
+}
