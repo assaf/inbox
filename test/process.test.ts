@@ -42,7 +42,10 @@ const digest = { scans: [], droppedAds: [], packages: [] } as unknown as Digest;
 
 const DIGEST_SENDER = "USPSInformedDelivery@email.informeddelivery.usps.com";
 
-function rawEmailFor(id: string, overrides: Partial<{ from: string | null }> = {}): {
+function rawEmailFor(
+  id: string,
+  overrides: Partial<{ from: string | null }> = {},
+): {
   id: string;
   raw: Buffer;
   receivedAt: string;

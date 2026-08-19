@@ -82,7 +82,7 @@ Fixes, in order of importance:
   loose substring match and SMTP `From:` is spoofable, so every candidate is
   checked against the exact `DIGEST_SENDER` address (case-insensitive) before
   download/OCR/import, and skipped otherwise (log: `skipping digest from
-  unexpected sender`). Partial defense: a spoof using the exact address in
+unexpected sender`). Partial defense: a spoof using the exact address in
   the From header still passes; real defense would be DKIM verification
   (overkill here).
 - **Secret-gated endpoints.** `/api/cron` requires `CRON_SECRET` (Vercel cron

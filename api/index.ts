@@ -63,7 +63,8 @@ function page(rows: Row[], pending: string, recent: string[]): string {
     ? recent.map((r) => `<li style="margin:4px 0;color:var(--muted);">${esc(r)}</li>`).join("")
     : `<li style="margin:4px 0;color:var(--muted);">none yet</li>`;
 
-  const th = "padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:1px solid var(--border);font-weight:600;";
+  const th =
+    "padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:1px solid var(--border);font-weight:600;";
 
   return `<!doctype html>
 <html lang="en">
