@@ -5,7 +5,7 @@ in your own Fastmail inbox. USPS replaces your actual mail scans with ads
 (`mailer-*.jpg` / `content-*.jpg`); this app monitors each digest via **Fastmail
 JMAP push**, reconstructs a one-page digest (list of packages first, then scans,
 then a real "these mailpieces had no scan" note), and moves the clean digest
-back into your Inbox — archiving the original.
+back into your Inbox — trashing the original.
 
 It runs on **your** Vercel account and connects to **your** Fastmail account.
 This is a personal app that you host yourself, not a service you subscribe to.
@@ -108,7 +108,7 @@ which uses Python + SES + S3 + Lambda.
 
 7. **Verify** — the Vercel function will print
    `[push] verified subscription <id>`. The next digest (or a test email) should
-   be processed into a clean "Mail for …" copy in your Inbox and archive the
+   be processed into a clean "Mail for …" copy in your Inbox and trash the
    original. To process an existing backlog once, run `pnpm process`.
 
 The deployed app provides a small **status page** at the root URL (`/`) with
@@ -169,7 +169,7 @@ pnpm test         # test suite
 pnpm secretlint   # no secrets in the repo
 pnpm knip         # no unused files/deps
 pnpm dry-run      # read-only: parse real digests, write clean .eml to out/
-pnpm process [n]  # live: import clean copy + archive original (n = limit)
+pnpm process [n]  # live: import clean copy + trash original (n = limit)
 pnpm dev          # vercel dev via portless, https://inbox.localhost
 ```
 

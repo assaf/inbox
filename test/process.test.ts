@@ -8,6 +8,7 @@ vi.mock("../lib/jmap.js", () => ({
   rawEmail: vi.fn(),
   importEmail: vi.fn(),
   markProcessed: vi.fn(),
+  trashEmail: vi.fn(),
 }));
 
 vi.mock("../lib/clean.js", () => ({
@@ -20,6 +21,7 @@ import {
   rawEmail,
   importEmail,
   markProcessed,
+  trashEmail,
 } from "../lib/jmap.js";
 import { rebuildDigest } from "../lib/clean.js";
 
@@ -28,6 +30,7 @@ const unprocessedDigestIdsMock = vi.mocked(unprocessedDigestIds);
 const rawEmailMock = vi.mocked(rawEmail);
 const importEmailMock = vi.mocked(importEmail);
 const markProcessedMock = vi.mocked(markProcessed);
+const trashEmailMock = vi.mocked(trashEmail);
 const rebuildDigestMock = vi.mocked(rebuildDigest);
 
 const SESSION = {
@@ -70,6 +73,7 @@ beforeEach(() => {
   rawEmailMock.mockReset();
   importEmailMock.mockReset();
   markProcessedMock.mockReset();
+  trashEmailMock.mockReset();
   rebuildDigestMock.mockReset();
 });
 
@@ -87,6 +91,10 @@ describe("processNewDigests", () => {
     expect(importEmailMock).toHaveBeenCalledWith(Buffer.from("clean"), "2026-01-01T00:00:00Z");
     expect(markProcessedMock.mock.invocationCallOrder[0]!).toBeLessThan(
       importEmailMock.mock.invocationCallOrder[0]!,
+    );
+    expect(trashEmailMock).toHaveBeenCalledWith("id1");
+    expect(importEmailMock.mock.invocationCallOrder[0]!).toBeLessThan(
+      trashEmailMock.mock.invocationCallOrder[0]!,
     );
   });
 
@@ -113,6 +121,7 @@ describe("processNewDigests", () => {
     const result = await processNewDigests();
 
     expect(markProcessedMock).toHaveBeenCalledWith("id1");
+    expect(trashEmailMock).not.toHaveBeenCalled();
     expect(result).toEqual({ processed: 0, failed: 1 });
   });
 

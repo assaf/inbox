@@ -1,5 +1,12 @@
 import { digestSenderExact } from "./config.js";
-import { session, unprocessedDigestIds, rawEmail, importEmail, markProcessed } from "./jmap.js";
+import {
+  session,
+  unprocessedDigestIds,
+  rawEmail,
+  importEmail,
+  markProcessed,
+  trashEmail,
+} from "./jmap.js";
 import { rebuildDigest } from "./clean.js";
 import { log } from "./log.js";
 
@@ -53,6 +60,8 @@ export async function processNewDigests(limit?: number): Promise<ProcessResult> 
         }
         const { digest, clean } = await rebuildDigest(email.raw, s.username);
         await importEmail(clean, email.receivedAt);
+        // The clean copy is in the Inbox now; the original is redundant.
+        await trashEmail(id);
         processed++;
         log.info("cleaned digest", {
           id,

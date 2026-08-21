@@ -1,7 +1,7 @@
 import { processNewDigests } from "../lib/process.js";
 
 /**
- * Live run: import the clean copy into the Inbox and archive the original.
+ * Live run: import the clean copy into the Inbox and trash the original.
  * Destructive — run scripts/dry-run.ts first and inspect out/*.eml.
  * Optional arg limits how many digests to process (test with `pnpm process 1`).
  */

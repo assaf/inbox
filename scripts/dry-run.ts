@@ -15,7 +15,7 @@ function safeName(s: string): string {
 
 /**
  * Read-only test: fetch every unprocessed digest, parse it, and write the
- * rebuilt clean message to out/*.eml. Never imports or archives anything.
+ * rebuilt clean message to out/*.eml. Never imports or trashes anything.
  */
 async function main(): Promise<void> {
   const s = await session();

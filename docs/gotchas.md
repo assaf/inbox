@@ -8,7 +8,11 @@ architecture. Read before touching the pipeline.
 - **Keywords are `$`-prefixed, not RFC `\`-prefixed.** Fastmail rejects
   `\seen` and `\archive` (Email/set returns `notUpdated` with
   `invalidProperties`); its read flag is `$seen`. There is no archive keyword —
-  archiving is a mailbox move to the `role: "archive"` mailbox.
+  archiving is a mailbox move to the `role: "archive"` mailbox. Trash is the
+  same: `Email/set` with `mailboxIds: { <trash>: true }` — Fastmail treats
+  `mailboxIds` in an update as a full replacement (values must all be `true`;
+  a `false` value errors with `invalidProperties`), so naming only the Trash
+  mailbox moves the email out of the Inbox.
 - **`$usps-processed` is one-way.** It can be set but _not_ removed (both the
   flattened `keywords/$name: false` and map forms are rejected). Consequence:
   `processNewDigests` marks **before** import and has no rollback — a failed
@@ -54,6 +58,10 @@ Fixes, in order of importance:
 2. Clean copies are imported already carrying `$usps-processed`.
 3. **Mark-before-import** + **process one digest per push** (`processNewDigests(1)`
    in the push handler) so a concurrent re-run can't re-process the same digest.
+4. **Trash the original after a successful import** (`trashEmail` in
+   `processNewDigests`). Trashing comes last on purpose: if rebuild/import
+   fails, the original stays untouched in the Inbox, and it stays put if the
+   trash move itself fails (nothing lost — just a straggler in the Inbox).
 
 ## Ops
 

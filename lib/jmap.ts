@@ -249,6 +249,23 @@ export async function importEmail(raw: Buffer, receivedAt: string): Promise<stri
   return createdEmail.id;
 }
 
+/** Move an email out of the Inbox into Trash. */
+export async function trashEmail(id: string): Promise<void> {
+  const s = await session();
+  const trash = await mailboxIdByRole("trash");
+  await call<{ accountId: string; update: Record<string, unknown> }, unknown>("Email/set", {
+    accountId: s.accountId,
+    update: {
+      [id]: {
+        // Fastmail treats mailboxIds as a full replacement and rejects
+        // `false` values: setting only the Trash mailbox moves the email
+        // there and removes it from the Inbox.
+        mailboxIds: { [trash]: true },
+      },
+    },
+  });
+}
+
 /** Mark the original digest read + processed (both keyword flags). */
 export async function markProcessed(id: string): Promise<void> {
   const s = await session();
