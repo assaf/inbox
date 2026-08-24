@@ -50,9 +50,9 @@ setup` and the daily cron. The webhook finishes the `PushVerification`
 
 - **Ad-stripping is a filename deny-list**, not an LLM call: campaign creative is
   always `mailer-*.jpg` / `content-*.jpg`; all other images are actual scans.
-- **Senders are taken from the `FROM:` labels first**, then vision. Many of the
-  scans shown below a `FROM:` heading; `mapCidSenders` traverses the document
-  order and attaches the nearest preceding `FROM:` label to each `cid:` image.
+- **Senders are taken from the `FROM:` labels first**, then vision. USPS renders
+  one `FROM:` label directly above each piece's scan; `mapCidSenders` walks the
+  document order and attaches each label to the `cid:` image below it.
   Scans without a label get OCR'd with Cloudflare Workers AI
   (`@cf/meta/llama-3.2-11b-vision-instruct`) — the return address of the sender
   on the envelope. Deterministic (`temperature: 0`), and omitted altogether if

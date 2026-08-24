@@ -61,7 +61,7 @@ describe("rejoinFragments", () => {
 // --- positional FROM: -> cid mapping ------------------------------------------
 
 describe("mapCidSenders", () => {
-  it("attaches the nearest preceding FROM: to each cid image", () => {
+  it("attaches each FROM: label to the cid image directly below it", () => {
     const html = `
       <div><span>FROM:</span><span>USPS HR</span>
         <img src="cid:mailer-1202018058.jpg"><img src="cid:content-1202018058.jpg"></div>
@@ -74,6 +74,25 @@ describe("mapCidSenders", () => {
     expect(mapping.get("mailer-1202018058.jpg")).toBe("USPS HR");
     // inline "FROM: x" form, not the split-span form
     expect(mapping.get("mailer-1202017988.jpg")).toBe("save-select homes");
+  });
+
+  it("does not leak one label onto later scans (USPS 8/24 format)", () => {
+    // One "FROM: Capital One" label above the first scan; scans 2-4 below
+    // have no label of their own. Only the first scan may inherit it.
+    const html = `
+      <div>Expected Today 4 item(s)</div>
+      <div><span>FROM:</span><span>Capital One</span>
+        <img src="cid:1017203838-001.jpg" /></div>
+      <div><img src="cid:content-1202037427.jpg" /></div>
+      <div><img src="cid:1017336846-001.jpg" /></div>
+      <div><img src="cid:1017189750-001.jpg" /></div>
+      <div><img src="cid:1017157989-001.jpg" /></div>
+    `;
+    const mapping = mapCidSenders(html);
+    expect(mapping.get("1017203838-001.jpg")).toBe("Capital One");
+    expect(mapping.has("1017336846-001.jpg")).toBe(false);
+    expect(mapping.has("1017189750-001.jpg")).toBe(false);
+    expect(mapping.has("1017157989-001.jpg")).toBe(false);
   });
 });
 

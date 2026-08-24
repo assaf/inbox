@@ -159,7 +159,12 @@ export function mapCidSenders(html: string): Map<string, string> {
   const document = parseHtml(html);
 
   const mapping = new Map<string, string>();
-  let lastFrom: string | null = null;
+  // USPS renders one "FROM:" label row directly above exactly one image row.
+  // A label therefore names the NEXT cid image in document order, then is
+  // consumed — it must not leak onto later scans (a single "Capital One"
+  // label followed by four scans otherwise labels all four). Unlabeled scans
+  // fall through to OCR.
+  let pendingFrom: string | null = null;
   let awaitingName = false;
 
   const walk = (node: unknown): void => {
@@ -176,21 +181,22 @@ export function mapCidSenders(html: string): Map<string, string> {
       if (text.startsWith("FROM:")) {
         const rest = text.slice("FROM:".length).trim();
         if (rest) {
-          lastFrom = rest;
+          pendingFrom = rest;
           awaitingName = false;
         } else {
           awaitingName = true;
         }
       } else if (awaitingName) {
-        lastFrom = text;
+        pendingFrom = text;
         awaitingName = false;
       }
       return;
     }
     if (n.nodeType === 1 && (n.tagName ?? "").toLowerCase() === "img") {
       const src = (n.getAttribute?.("src") ?? "").trim();
-      if (src.toLowerCase().startsWith("cid:") && lastFrom) {
-        mapping.set(src.slice(4).trim().replace(/^<|>$/g, ""), lastFrom);
+      if (src.toLowerCase().startsWith("cid:") && pendingFrom) {
+        mapping.set(src.slice(4).trim().replace(/^<|>$/g, ""), pendingFrom);
+        pendingFrom = null;
       }
       return;
     }
