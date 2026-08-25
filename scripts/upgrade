@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Upgrade dependencies to latest, holding TypeScript on the stable 5.x line
-# (7.x is the native preview and breaks the Vercel build with a readFile error).
-# Any failing check aborts the script before the commit.
+# Upgrade dependencies to latest. TypeScript 7.x (the native compiler) is now
+# the stable line and builds fine on Vercel — it needs the explicit typeRoots
+# in tsconfig.json, which the Vercel build checks. Any failing check aborts
+# the script before the commit.
 set -eo pipefail
 
 echo -e "\033[32m  Upgrading pnpm …\033[0m"
@@ -9,10 +10,6 @@ pnpm self-update
 
 echo -e "\033[32m  Upgrading dependencies …\033[0m"
 pnpm update --latest
-
-echo -e "\033[32m  Holding TypeScript on 5.x …\033[0m"
-pnpm add -D typescript@5.8.3
-
 echo -e "\033[32m  Deduping dependencies …\033[0m"
 pnpm dedupe --ignore-scripts
 pnpm prune --ignore-scripts

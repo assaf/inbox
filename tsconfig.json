@@ -13,7 +13,8 @@
     "resolveJsonModule": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
-    "types": ["node"]
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types"]
   },
   "include": ["api/**/*.ts", "lib/**/*.ts", "scripts/**/*.ts", "test/**/*.ts", "*.d.ts"]
 }

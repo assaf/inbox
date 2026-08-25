@@ -151,8 +151,9 @@ both produce incorrect output for this SVG (opaque corners / white background).
 
 - **Deploy**: `scripts/deploy` (check + test + secretlint + knip + deploy +
   post-deploy smoke check).
-- **Upgrade dependencies**: `scripts/upgrade` (holds TypeScript on the stable
-  5.x line — 7.x is a native preview that breaks the Vercel build).
+- **Upgrade dependencies**: `scripts/upgrade` (TypeScript 7.x, the native
+  compiler, is now the stable line and builds on Vercel; the explicit
+  `typeRoots` in `tsconfig.json` is required for Vercel's build).
 - **Subscription renewal**: Fastmail push subscriptions expire after ~30 days. A
   daily cron (`0 12 * * *`) calls `/api/cron` to renew expiring subscriptions
   and process any digests that arrived without a push (the catch-up net for
