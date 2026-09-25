@@ -23,6 +23,26 @@ pnpm knip
 echo -e "\033[32m  Build check (Vercel-equivalent) …\033[0m"
 vercel build --yes
 
+echo -e "\033[32m  Verifying runtime deps landed in the function bundles …\033[0m"
+# A clean `vercel build` exit does not mean the tracer copied every runtime
+# dependency: the nodemailer 10 upgrade passed this check while the built
+# functions shipped without it, so every push crashed with
+# ERR_MODULE_NOT_FOUND until a digest went unprocessed for a day.
+for func in .vercel/output/functions/api/*.func; do
+  case "$(basename "$func")" in
+    push.func) required="nodemailer postal-mime linkedom http_ece" ;;
+    cron.func) required="nodemailer postal-mime linkedom" ;;
+    *) required="" ;;
+  esac
+  for dep in $required; do
+    if ! ls "$func/node_modules/.pnpm/" 2>/dev/null | grep -q "^${dep}@"; then
+      echo "Bundle check FAILED: $(basename "$func") is missing ${dep}." >&2
+      exit 1
+    fi
+  done
+done
+echo -e "\033[32m  Bundle check passed.\033[0m"
+
 echo -e "\033[32m  Auditing dependencies …\033[0m"
 pnpm audit --prod || echo "Security audit failed"
 

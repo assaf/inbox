@@ -1,6 +1,6 @@
 import PostalMime, { type Attachment } from "postal-mime";
 import { parseHTML } from "linkedom";
-import MailComposer from "nodemailer/lib/mail-composer/index.js";
+import MailComposer from "nodemailer/lib/mail-composer";
 import { esc } from "./html.js";
 
 // ---------------------------------------------------------------------------
