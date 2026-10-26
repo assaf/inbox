@@ -39,7 +39,7 @@ Email/import into Inbox → mark original read + $usps-processed
 
 - **Push**: Fastmail POSTs an encrypted `StateChange` to `/api/push`. The
   subscription is established/renewed via `ensureSubscription()` and `pnpm
-setup` and the daily cron. The webhook finishes the `PushVerification`
+  setup` and the daily cron. The webhook finishes the `PushVerification`
   handshake.
 - **Idempotency**: processed originals are marked with `$usps-processed`
   keyword; the query filters on it. Failed import leaves the original untouched

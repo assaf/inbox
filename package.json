@@ -8,10 +8,10 @@
     "setup": "tsx scripts/setup.ts",
     "typecheck": "tsc --noEmit",
     "lint": "vp lint",
-    "check": "vp check --fix",
+    "check": "vp check --fix && knip && pnpm secretlint",
     "dry-run": "tsx scripts/dry-run.ts",
     "process": "tsx scripts/process.ts",
-    "test": "vitest run",
+    "test": "pnpm check && vitest run",
     "test:watch": "vitest",
     "secretlint": "secretlint \"**/*\"",
     "knip": "knip",
@@ -19,23 +19,23 @@
   },
   "dependencies": {
     "http_ece": "^1.2.1",
-    "linkedom": "^0.18.13",
-    "nodemailer": "^10.0.10",
-    "postal-mime": "^3.0.0"
+    "linkedom": "^0.18.14",
+    "nodemailer": "^10.2.1",
+    "postal-mime": "^4.1.4"
   },
   "devDependencies": {
-    "@secretlint/secretlint-rule-pattern": "^13.0.5",
-    "@secretlint/secretlint-rule-preset-recommend": "^13.0.5",
-    "@types/node": "^26.6.2",
+    "@secretlint/secretlint-rule-pattern": "^13.0.7",
+    "@secretlint/secretlint-rule-preset-recommend": "^13.0.7",
+    "@types/node": "^26.6.5",
     "@types/nodemailer": "^8.0.2",
-    "@vercel/node": "^14.0.0",
-    "knip": "^6.38.0",
-    "portless": "^0.15.6",
-    "secretlint": "^13.0.5",
+    "@vercel/node": "^27.0.2",
+    "knip": "^6.43.0",
+    "portless": "^0.15.11",
+    "secretlint": "^13.0.7",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vite-plus": "^1.0.0-rc.0",
-    "vitest": "^5.0.1"
+    "vite-plus": "^1.4.0",
+    "vitest": "^5.0.5"
   },
   "packageManager": "pnpm@12.6.0"
 }
