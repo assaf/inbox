@@ -21,23 +21,23 @@
   "dependencies": {
     "@resvg/resvg-wasm": "^2.6.2",
     "http_ece": "^1.2.1",
-    "linkedom": "^0.18.14",
-    "nodemailer": "^10.2.1",
-    "postal-mime": "^4.1.4"
+    "linkedom": "^0.18.15",
+    "nodemailer": "^10.3.1",
+    "postal-mime": "^4.2.0"
   },
   "devDependencies": {
-    "@secretlint/secretlint-rule-pattern": "^13.0.7",
-    "@secretlint/secretlint-rule-preset-recommend": "^13.0.7",
-    "@types/node": "^26.6.5",
+    "@secretlint/secretlint-rule-pattern": "^13.1.0",
+    "@secretlint/secretlint-rule-preset-recommend": "^13.1.0",
+    "@types/node": "^26.6.6",
     "@types/nodemailer": "^8.0.2",
-    "@vercel/node": "^27.0.2",
-    "knip": "^6.43.0",
-    "portless": "^0.15.11",
-    "secretlint": "^13.0.7",
+    "@vercel/node": "^30.0.0",
+    "knip": "^6.44.1",
+    "portless": "^0.16.0",
+    "secretlint": "^13.1.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vite-plus": "^1.4.0",
-    "vitest": "^5.0.5"
+    "vite-plus": "^1.5.0",
+    "vitest": "^5.1.0"
   },
-  "packageManager": "pnpm@12.6.0"
+  "packageManager": "pnpm@12.18.0"
 }
