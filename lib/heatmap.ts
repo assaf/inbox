@@ -228,9 +228,10 @@ const RADIUS = 2.5;
 const PAD = 10;
 const LABEL_H = 22;
 const WEEKDAY_W = 40;
-const FOOTER_H = 28;
+const FOOTER_H = 35;
 const FOOTER_GAP = 13;
-const LABEL_SIZE = 8; // months, weekdays, legend, summary — CSS px
+const LABEL_SIZE = 8; // months, weekdays, legend — CSS px
+const TOTAL_SIZE = 16; // summary line — CSS px (32 device px at 2x)
 const FONT_FAMILY = "IBM Plex Sans";
 
 const MONTHS = [
@@ -377,25 +378,27 @@ export function buildHeatmapSvg(input: HeatmapInput): string {
   const visibleTotal = allDays.reduce((sum, day) => sum + day.count, 0);
   const summary = `${visibleTotal.toLocaleString("en-US")} contributions in the last year`;
   const footerTop = gridY + 7 * step - GAP * SCALE + FOOTER_GAP * SCALE;
-  const footerBaseline = footerTop + 0.78 * LABEL_SIZE * SCALE;
-  parts.push(text(summary, pad, footerBaseline, LABEL_SIZE, theme.text));
+  const summaryBaseline = footerTop + 0.78 * TOTAL_SIZE * SCALE;
+  parts.push(text(summary, pad, summaryBaseline, TOTAL_SIZE, theme.text));
 
   const legendGap = 5 * SCALE;
-  const legendWord = 2.4 * LABEL_SIZE * SCALE;
+  // Legend words keep the small label size but sit on the summary baseline.
+  const fontSize = LABEL_SIZE * SCALE;
+  const legendWord = 2.4 * fontSize;
   const legendCells = 5 * cell + 4 * GAP * SCALE;
   // Both words are drawn at a fixed width, so the block is exactly these sizes.
   const legendWidth = 2 * legendWord + 2 * legendGap + legendCells;
   const lessX = width - pad - legendWidth;
   const cellsX = lessX + legendWord + legendGap;
   const moreX = cellsX + legendCells + legendGap;
-  parts.push(text("Less", lessX, footerBaseline, LABEL_SIZE, theme.text, legendWord));
+  parts.push(text("Less", lessX, summaryBaseline, LABEL_SIZE, theme.text, legendWord));
   for (let level = 0; level < 5; level += 1) {
     const color = theme.level[level] ?? theme.level[0] ?? [0, 0, 0];
     parts.push(
-      `<rect x="${cellsX + level * (cell + GAP * SCALE)}" y="${footerBaseline - cell + 2 * SCALE}" width="${cell}" height="${cell}" rx="${radius}" fill="${hex(color)}"/>`,
+      `<rect x="${cellsX + level * (cell + GAP * SCALE)}" y="${summaryBaseline - cell + 2 * SCALE}" width="${cell}" height="${cell}" rx="${radius}" fill="${hex(color)}"/>`,
     );
   }
-  parts.push(text("More", moreX, footerBaseline, LABEL_SIZE, theme.text, legendWord));
+  parts.push(text("More", moreX, summaryBaseline, LABEL_SIZE, theme.text, legendWord));
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${parts.join("")}</svg>`;
 }

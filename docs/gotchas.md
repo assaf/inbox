@@ -79,7 +79,7 @@ Fixes, in order of importance:
 - **Heatmap renderer.** `/github.heatmap.png` rewrites to `/api/heatmap`, which
   builds an SVG and rasterises it with `@resvg/resvg-wasm` — real typography
   (IBM Plex Sans, antialiased) rather than a bitmap font. The image is a 2x
-  asset: the PNG is 1836×360, embedders use 918×180.
+  asset: the PNG is 1836×374, embedders use 918×187.
   The wasm and the TTF are **inlined as base64 modules**
   (`lib/resvg-wasm-base64.ts`, `lib/plex-sans-base64.ts`, regenerate with
   `pnpm gen-assets` from the copies in `assets/`). Three shipping attempts
