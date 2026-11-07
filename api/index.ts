@@ -43,18 +43,18 @@ async function statusRows(): Promise<{ rows: Row[]; pending: string; recent: str
 
 function embedCard(base: string): string {
   const url = `${base}/github.heatmap.png`;
-  const html = `<img src="${url}" width="918" height="187" alt="GitHub contributions in the last year">`;
+  const html = `<img src="${url}" width="922" height="191" alt="GitHub contributions in the last year">`;
   const markdown = `![GitHub contributions in the last year](${url})`;
-  const linked = `<a href="https://github.com/assaf"><img src="${url}" width="918" height="187" alt="GitHub contributions in the last year"></a>`;
+  const linked = `<a href="https://github.com/assaf"><img src="${url}" width="922" height="191" alt="GitHub contributions in the last year"></a>`;
 
   return `
   <div class="card">
     <h2 style="font-size:14px;margin:0 0 4px;">Embed the heatmap</h2>
     <p class="note">The last year of GitHub contributions, rendered server-side. The PNG is
-      <strong>1836×374</strong>, a 2x asset: embed it at <strong>918×187</strong> so it stays
+      <strong>1844×382</strong>, a 2x asset: embed it at <strong>922×191</strong> so it stays
       sharp on retina displays. No JavaScript, no API key — hotlink it from any page. It is
       regenerated on demand and cached for 4 hours.</p>
-    <img class="preview" src="/github.heatmap.png" width="918" height="187" alt="GitHub contributions in the last year">
+    <img class="preview" src="/github.heatmap.png" width="922" height="191" alt="GitHub contributions in the last year">
     <p class="note">Image URL: <a href="${esc(url)}">${esc(url)}</a></p>
     <p class="label">HTML</p>
     <pre><code>${esc(html)}</code></pre>
@@ -63,7 +63,7 @@ function embedCard(base: string): string {
     <p class="label">Linked image</p>
     <pre><code>${esc(linked)}</code></pre>
     <p class="note">Scale it with CSS (<code>width:100%;height:auto</code>) if the column is
-      narrower than 918px; keep the <code>width</code>/<code>height</code> attributes so the
+      narrower than 922px; keep the <code>width</code>/<code>height</code> attributes so the
       layout does not jump while the PNG loads. The image is a fixed size — the week count is
       normalised to 53 columns — so the attributes never fight the asset.</p>
   </div>`;

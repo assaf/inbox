@@ -48,9 +48,9 @@ describe("heatmapPng", () => {
     expect(png[1]).toBe(0x50);
     expect(png[2]).toBe(0x4e);
     expect(png[3]).toBe(0x47);
-    // 10px pad + 40px weekday + 53 columns of 16.25px - 3.75px gap, at 2x.
-    expect(png.readUInt32BE(16)).toBe(918 * 2);
-    // 10px pad + 22px band + 7 rows of 16.25px + 35px footer, at 2x.
-    expect(png.readUInt32BE(20)).toBe(Math.ceil(10 * 2 + 22 + 7 * 16.25 - 3.75 + 35) * 2);
+    // 10px pad + 44px weekday + 53 columns of 16.25px - 3.75px gap, at 2x.
+    expect(png.readUInt32BE(16)).toBe(Math.ceil(10 * 2 + 44 + 53 * 16.25 - 3.75) * 2);
+    // 10px pad + 26px band + 7 rows of 16.25px + 35px footer, at 2x.
+    expect(png.readUInt32BE(20)).toBe(Math.ceil(10 * 2 + 26 + 7 * 16.25 - 3.75 + 35) * 2);
   });
 });
