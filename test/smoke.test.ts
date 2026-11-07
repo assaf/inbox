@@ -67,6 +67,7 @@ describe("/api/smoke", () => {
       jmap: true,
       pushSubscription: true,
       cloudflareOcr: true,
+      heatmap: true,
     });
   });
 
@@ -82,6 +83,7 @@ describe("/api/smoke", () => {
       jmap: false,
       pushSubscription: true,
       cloudflareOcr: true,
+      heatmap: true,
     });
   });
 });

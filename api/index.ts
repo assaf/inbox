@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { envOpt } from "../lib/config.js";
 import { esc } from "../lib/html.js";
 import { recentProcessed, unprocessedDigestIds } from "../lib/jmap.js";
 import { collectStatus } from "../lib/status.js";
@@ -40,7 +41,35 @@ async function statusRows(): Promise<{ rows: Row[]; pending: string; recent: str
   return { rows, pending, recent };
 }
 
-function page(rows: Row[], pending: string, recent: string[]): string {
+function embedCard(base: string): string {
+  const url = `${base}/github.heatmap.png`;
+  const html = `<img src="${url}" width="918" height="180" alt="GitHub contributions in the last year">`;
+  const markdown = `![GitHub contributions in the last year](${url})`;
+  const linked = `<a href="https://github.com/assaf"><img src="${url}" width="918" height="180" alt="GitHub contributions in the last year"></a>`;
+
+  return `
+  <div class="card">
+    <h2 style="font-size:14px;margin:0 0 4px;">Embed the heatmap</h2>
+    <p class="note">The last year of GitHub contributions, rendered server-side. The PNG is
+      <strong>1836×360</strong>, a 2x asset: embed it at <strong>918×180</strong> so it stays
+      sharp on retina displays. No JavaScript, no API key — hotlink it from any page. It is
+      regenerated on demand and cached for 4 hours.</p>
+    <img class="preview" src="/github.heatmap.png" width="918" height="180" alt="GitHub contributions in the last year">
+    <p class="note">Image URL: <a href="${esc(url)}">${esc(url)}</a></p>
+    <p class="label">HTML</p>
+    <pre><code>${esc(html)}</code></pre>
+    <p class="label">Markdown</p>
+    <pre><code>${esc(markdown)}</code></pre>
+    <p class="label">Linked image</p>
+    <pre><code>${esc(linked)}</code></pre>
+    <p class="note">Scale it with CSS (<code>width:100%;height:auto</code>) if the column is
+      narrower than 918px; keep the <code>width</code>/<code>height</code> attributes so the
+      layout does not jump while the PNG loads. The image is a fixed size — the week count is
+      normalised to 53 columns — so the attributes never fight the asset.</p>
+  </div>`;
+}
+
+function page(rows: Row[], pending: string, recent: string[], base: string): string {
   const allOk = rows.every((r) => r.ok);
   const dot = allOk ? "#16a34a" : "#dc2626";
   const headline = allOk ? "healthy" : "attention needed";
@@ -100,6 +129,12 @@ function page(rows: Row[], pending: string, recent: string[]): string {
   .pending strong { font-size:22px; }
   ul { padding-left:20px; margin:8px 0 0; }
   .foot { color:var(--muted); font-size:13px; }
+  .note { color:var(--muted); font-size:13px; margin:8px 0 0; }
+  .label { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); font-weight:600; margin:16px 0 4px; }
+  .preview { display:block; width:100%; height:auto; margin:12px 0 0; border-radius:6px; }
+  pre { margin:0; padding:10px 12px; white-space:pre-wrap; word-break:break-word; background:var(--bg); border:1px solid var(--border); border-radius:8px; }
+  code { font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  .note code { word-break:normal; }
   a { color:inherit; }
 </style>
 </head>
@@ -128,6 +163,7 @@ function page(rows: Row[], pending: string, recent: string[]): string {
     <ul>${recentHtml}</ul>
   </div>
 
+  ${embedCard(base)}
   <p class="foot">
     Status is <span style="color:${dot};font-weight:700;">● ${headline}</span>.
     Checks refresh on each load · <a href="https://vercel.com/dashboard">Vercel</a> ·
@@ -144,6 +180,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
   const { rows, pending, recent } = await statusRows();
+  const forwarded = req.headers?.["x-forwarded-host"];
+  const host = (Array.isArray(forwarded) ? forwarded[0] : forwarded) ?? req.headers?.host;
+  const base = (envOpt("PUBLIC_URL") ?? `https://${host ?? "localhost"}`).replace(/\/+$/, "");
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.status(200).send(page(rows, pending, recent));
+  res.status(200).send(page(rows, pending, recent, base));
 }

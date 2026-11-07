@@ -15,9 +15,11 @@
     "test:watch": "vitest",
     "secretlint": "secretlint \"**/*\"",
     "knip": "knip",
-    "dev": "portless run -- tsx scripts/dev.ts"
+    "dev": "portless run -- tsx scripts/dev.ts",
+    "gen-assets": "tsx scripts/gen-assets.ts"
   },
   "dependencies": {
+    "@resvg/resvg-wasm": "^2.6.2",
     "http_ece": "^1.2.1",
     "linkedom": "^0.18.14",
     "nodemailer": "^10.2.1",

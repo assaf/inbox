@@ -85,4 +85,18 @@ describe("/api/index", () => {
 
     expect(String(res.body)).toContain("2026-01-02 — Daily Digest");
   });
+
+  it("documents embedding the heatmap with an absolute URL", async () => {
+    collectStatusMock.mockResolvedValue(status());
+    process.env.PUBLIC_URL = "https://inbox.example.com/";
+    const res = makeRes();
+    await handler(req("GET"), res as unknown as VercelResponse);
+    delete process.env.PUBLIC_URL;
+
+    const body = String(res.body);
+    expect(body).toContain("&lt;img src=&quot;https://inbox.example.com/github.heatmap.png&quot;");
+    expect(body).toContain(
+      "![GitHub contributions in the last year](https://inbox.example.com/github.heatmap.png)",
+    );
+  });
 });

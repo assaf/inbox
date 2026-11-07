@@ -76,6 +76,33 @@ Fixes, in order of importance:
 - Fastmail OAuth 2.0 exists (auth code + PKCE) but requires manual client
   registration with Fastmail — not self-serve. API token is correct for
   self-use.
+- **Heatmap renderer.** `/github.heatmap.png` rewrites to `/api/heatmap`, which
+  builds an SVG and rasterises it with `@resvg/resvg-wasm` — real typography
+  (IBM Plex Sans, antialiased) rather than a bitmap font. The image is a 2x
+  asset: the PNG is 1836×360, embedders use 918×180.
+  The wasm and the TTF are **inlined as base64 modules**
+  (`lib/resvg-wasm-base64.ts`, `lib/plex-sans-base64.ts`, regenerate with
+  `pnpm gen-assets` from the copies in `assets/`). Three shipping attempts
+  failed before that: `readFileSync(join(process.cwd(), …))`, a literal
+  `new URL("../assets/x", import.meta.url)`, and
+  `includeFiles: "assets/**"` on `api/*.ts` — each produced a function whose
+  `.func` directory had no assets (`vercel build`, then check
+  `.vercel/output/functions/api/heatmap.func/`). Only module imports are
+  traced, so the bundle now carries ~3.5 MB of generated JS. Consequences:
+  `vercel.json` needs no `functions` entry beyond `maxDuration` (a literal
+  per-function key is rejected outright with `pattern … doesn't match any
+  Serverless Functions`), `.prettierignore` and `.eslintignore` must keep
+  skipping the generated files or `vp check` dies on them, and `/api/smoke`
+  renders a throwaway heatmap so a broken bundle fails the deploy check
+  instead of the embed.
+- **Heatmap token scope.** `/api/heatmap` reads
+  `GITHUB_TOKEN` and queries `contributionsCollection`. A **fine-grained**
+  PAT (`github_pat_…`) only counts public contributions there — the graph
+  quietly renders a third of the real total (2,242 vs 6,694, of which 1,267
+  are private). Use a classic token with `repo` scope (or a `gho_` OAuth
+  token from `gh auth token`): it returns `restrictedContributionsCount`
+  too. Fastest check is to compare the two tokens' `totalContributions` for
+  the same login before blaming the renderer.
 
 ## Security
 

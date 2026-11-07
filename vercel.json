@@ -8,6 +8,10 @@
     {
       "source": "/",
       "destination": "/api/index"
+    },
+    {
+      "source": "/github.heatmap.png",
+      "destination": "/api/heatmap"
     }
   ],
   "crons": [

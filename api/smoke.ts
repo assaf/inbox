@@ -1,12 +1,16 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { envOpt } from "../lib/config.js";
+import { heatmapPng } from "../lib/heatmap.js";
 import { safeEqual } from "../lib/secure.js";
 import { collectStatus } from "../lib/status.js";
 
 /**
  * Health check for the deployed pipeline: JMAP reachable, push subscription
- * live, and OCR configured. Secret-gated — disabled (404) unless
- * SMOKE_TEST_SECRET is set; send it in the `x-smoke-secret` header.
+ * live, OCR configured, and the heatmap renderer intact (its wasm and font
+ * come from `assets/`, which the function bundle only carries because
+ * vercel.json pins them — a tracer drop shows up here, not in local tests).
+ * Secret-gated — disabled (404) unless SMOKE_TEST_SECRET is set; send it in
+ * the `x-smoke-secret` header.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const secret = envOpt("SMOKE_TEST_SECRET");
@@ -20,11 +24,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 
   const status = await collectStatus();
-  const ok = status.jmapOk && status.pushOk && status.ocrOk;
+  let heatmapOk = false;
+  try {
+    const png = await heatmapPng({ totalContributions: 0, weeks: [] });
+    heatmapOk = png.readUInt32BE(16) > 0;
+  } catch {
+    heatmapOk = false;
+  }
+  const ok = status.jmapOk && status.pushOk && status.ocrOk && heatmapOk;
   res.status(ok ? 200 : 500).json({
     ok,
     jmap: status.jmapOk,
     pushSubscription: status.pushOk,
     cloudflareOcr: status.ocrOk,
+    heatmap: heatmapOk,
   });
 }
