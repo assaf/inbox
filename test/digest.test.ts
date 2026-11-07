@@ -61,35 +61,44 @@ describe("rejoinFragments", () => {
 // --- positional FROM: -> cid mapping ------------------------------------------
 
 describe("mapCidSenders", () => {
-  it("attaches each FROM: label to the cid image directly below it", () => {
+  it("attaches each FROM: label to the campaign representative image below it", () => {
     const html = `
       <div><span>FROM:</span><span>USPS HR</span>
-        <img src="cid:mailer-1202018058.jpg"><img src="cid:content-1202018058.jpg"></div>
+        <img id="campaign-representative-image-src-id" src="cid:mailer-1202018058.jpg">
+        <img id="campaign-ridealong-image-src-id" src="cid:content-1202018058.jpg"></div>
       <div><span>FROM:</span><span>Example Bank</span>
-        <img src="cid:2989542530-068.jpg"><img src="cid:content-1201908387.jpg"></div>
-      <div>FROM: save-select homes<img src="cid:mailer-1202017988.jpg"></div>
+        <img id="campaign-representative-image-src-id" src="cid:2989542530-068.jpg">
+        <img id="campaign-ridealong-image-src-id" src="cid:content-1201908387.jpg"></div>
+      <div>FROM: save-select homes<img id="campaign-representative-image-src-id" src="cid:mailer-1202017988.jpg"></div>
+      <div><img id="mailpiece-image-src-id" src="cid:1017336846-001.jpg"></div>
     `;
     const mapping = mapCidSenders(html);
     expect(mapping.get("2989542530-068.jpg")).toBe("Example Bank");
     expect(mapping.get("mailer-1202018058.jpg")).toBe("USPS HR");
+    expect(mapping.has("content-1202018058.jpg")).toBe(false);
+    expect(mapping.has("content-1201908387.jpg")).toBe(false);
     // inline "FROM: x" form, not the split-span form
     expect(mapping.get("mailer-1202017988.jpg")).toBe("save-select homes");
+    // a real scan never inherits the preceding campaign label
+    expect(mapping.has("1017336846-001.jpg")).toBe(false);
   });
 
-  it("does not leak one label onto later scans (USPS 8/24 format)", () => {
-    // One "FROM: Capital One" label above the first scan; scans 2-4 below
-    // have no label of their own. Only the first scan may inherit it.
+  it("a campaign-representative scan keeps only its own label when emails are interleaved", () => {
+    // 8/24: one "FROM: Capital One" campaign row followed by four real scans.
+    // The label names the campaign image; the four scans take no label.
     const html = `
       <div>Expected Today 4 item(s)</div>
-      <div><span>FROM:</span><span>Capital One</span>
-        <img src="cid:1017203838-001.jpg" /></div>
-      <div><img src="cid:content-1202037427.jpg" /></div>
-      <div><img src="cid:1017336846-001.jpg" /></div>
-      <div><img src="cid:1017189750-001.jpg" /></div>
-      <div><img src="cid:1017157989-001.jpg" /></div>
+      <p id="campaign-from-label-id">FROM: <b><span id="campaign-from-span-id">Capital One</span></b></p>
+      <a><img id="campaign-representative-image-src-id" alt="campaign" src="cid:mailer-1202190384.jpg"></a>
+      <img id="campaign-ridealong-image-src-id" src="cid:content-1202162994.jpg" alt="RideAlong image">
+      <div id="sg-mailpiece"><img id="mailpiece-image-src-id" src="cid:1017203838-001.jpg" alt="Mailpiece Image"></div>
+      <div id="sg-mailpiece"><img id="mailpiece-image-src-id" src="cid:1017336846-001.jpg" alt="Mailpiece Image"></div>
+      <div id="sg-mailpiece"><img id="mailpiece-image-src-id" src="cid:1017189750-001.jpg" alt="Mailpiece Image"></div>
+      <div id="sg-mailpiece"><img id="mailpiece-image-src-id" src="cid:1017157989-001.jpg" alt="Mailpiece Image"></div>
     `;
     const mapping = mapCidSenders(html);
-    expect(mapping.get("1017203838-001.jpg")).toBe("Capital One");
+    expect(mapping.get("mailer-1202190384.jpg")).toBe("Capital One");
+    expect(mapping.has("1017203838-001.jpg")).toBe(false);
     expect(mapping.has("1017336846-001.jpg")).toBe(false);
     expect(mapping.has("1017189750-001.jpg")).toBe(false);
     expect(mapping.has("1017157989-001.jpg")).toBe(false);

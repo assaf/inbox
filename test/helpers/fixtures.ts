@@ -74,9 +74,9 @@ export const typicalDay: FixtureOpts = {
 <div>
   <div>Expected Today</div>
   <div><span>FROM:</span><span>Example Bank</span>
-    <img src="cid:2989542530-068.jpg" /><img src="cid:content-1201908387.jpg" /></div>
+    <img id="campaign-representative-image-src-id" src="cid:2989542530-068.jpg" /><img id="campaign-ridealong-image-src-id" src="cid:content-1201908387.jpg" /></div>
   <div>FROM: save-select homes
-    <img src="cid:mailer-1202017988.jpg" /><img src="cid:content-1202017988.jpg" /></div>
+    <img id="campaign-representative-image-src-id" src="cid:mailer-1202017988.jpg" /><img id="campaign-ridealong-image-src-id" src="cid:content-1202017988.jpg" /></div>
 </div>
 <div>PACKAGES</div>
 <div>
@@ -104,9 +104,9 @@ export const adOnlyDay: FixtureOpts = {
 <div>
   <div>Expected Today</div>
   <div><span>FROM:</span><span>Lands' End</span>
-    <img src="cid:mailer-1202018058.jpg" /><img src="cid:content-1202018058.jpg" /></div>
+    <img id="campaign-representative-image-src-id" src="cid:mailer-1202018058.jpg" /><img id="campaign-ridealong-image-src-id" src="cid:content-1202018058.jpg" /></div>
   <div>FROM: save-select homes
-    <img src="cid:mailer-1202017988.jpg" /><img src="cid:content-1202017988.jpg" /></div>
+    <img id="campaign-representative-image-src-id" src="cid:mailer-1202017988.jpg" /><img id="campaign-ridealong-image-src-id" src="cid:content-1202017988.jpg" /></div>
 </div>
 <div>PACKAGES</div>
 <div>No packages are available to display.</div>

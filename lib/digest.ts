@@ -159,11 +159,15 @@ export function mapCidSenders(html: string): Map<string, string> {
   const document = parseHtml(html);
 
   const mapping = new Map<string, string>();
-  // USPS renders one "FROM:" label row directly above exactly one image row.
-  // A label therefore names the NEXT cid image in document order, then is
-  // consumed — it must not leak onto later scans (a single "Capital One"
-  // label followed by four scans otherwise labels all four). Unlabeled scans
-  // fall through to OCR.
+  // USPS renders one "FROM:" label directly above exactly one campaign image
+  // row — the element with id "campaign-representative-image-src-id" — and
+  // that image alone consumes the label. Real envelope scans carry
+  // id "mailpiece-image-src-id" and ride-along ads carry
+  // "campaign-ridealong-image-src-id"; neither may inherit a FROM: label.
+  // Pairing with any-next-cid-image instead (the pre-8/24 behavior) labeled
+  // every following scan with the first label seen (a single "Capital One"
+  // label followed by four scans labeled all four). Unlabeled scans fall
+  // through to OCR.
   let pendingFrom: string | null = null;
   let awaitingName = false;
 
@@ -194,9 +198,15 @@ export function mapCidSenders(html: string): Map<string, string> {
     }
     if (n.nodeType === 1 && (n.tagName ?? "").toLowerCase() === "img") {
       const src = (n.getAttribute?.("src") ?? "").trim();
-      if (src.toLowerCase().startsWith("cid:") && pendingFrom) {
-        mapping.set(src.slice(4).trim().replace(/^<|>$/g, ""), pendingFrom);
-        pendingFrom = null;
+      const id = n.getAttribute?.("id") ?? "";
+      if (src.toLowerCase().startsWith("cid:")) {
+        if (id === "campaign-representative-image-src-id" && pendingFrom) {
+          mapping.set(src.slice(4).trim().replace(/^<|>$/g, ""), pendingFrom);
+          pendingFrom = null;
+        } else if (id === "campaign-ridealong-image-src-id") {
+          // A ride-along consumes its label without taking it.
+          pendingFrom = null;
+        }
       }
       return;
     }
